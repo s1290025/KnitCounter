@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     Keyboard,
@@ -65,6 +66,19 @@ export default function ProjectListScreen() {
     closeCreateModal();
   };
 
+  const openProject = (project: Project) => {
+    router.push({
+      pathname: '/counter/[id]',
+      params: {
+        id: String(project.id),
+        name: project.name,
+        memo: project.memo,
+        row: String(project.row),
+        stitch: String(project.stitch),
+      },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -100,6 +114,7 @@ export default function ProjectListScreen() {
               key={project.id}
               style={styles.projectCard}
               activeOpacity={0.8}
+              onPress={() => openProject(project)}
             >
               <View style={styles.projectInfo}>
                 <Text style={styles.projectName}>
@@ -123,17 +138,19 @@ export default function ProjectListScreen() {
               <TouchableOpacity
                 style={styles.editButton}
                 activeOpacity={0.8}
+                onPress={(event) => {
+                  event.stopPropagation();
+                }}
               >
                 <Text style={styles.editButtonText}>✎</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
 
-          {/* 右下の＋ボタンと重ならないための余白 */}
           <View style={styles.bottomSpace} />
         </ScrollView>
 
-        {/* 作品追加ボタン */}
+        {/* 作品追加 */}
         {projects.length < 5 && (
           <TouchableOpacity
             style={styles.addButton}
@@ -153,11 +170,7 @@ export default function ProjectListScreen() {
         >
           <KeyboardAvoidingView
             style={styles.modalKeyboardView}
-            behavior={
-              Platform.OS === 'ios'
-                ? 'padding'
-                : 'height'
-            }
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <TouchableWithoutFeedback
               onPress={Keyboard.dismiss}
@@ -194,10 +207,7 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <TextInput
-                        style={[
-                          styles.input,
-                          styles.memoInput,
-                        ]}
+                        style={[styles.input, styles.memoInput]}
                         value={memo}
                         onChangeText={setMemo}
                         placeholder="任意"
@@ -212,11 +222,7 @@ export default function ProjectListScreen() {
                           activeOpacity={0.8}
                           onPress={closeCreateModal}
                         >
-                          <Text
-                            style={
-                              styles.cancelButtonText
-                            }
-                          >
+                          <Text style={styles.cancelButtonText}>
                             キャンセル
                           </Text>
                         </TouchableOpacity>
@@ -229,15 +235,9 @@ export default function ProjectListScreen() {
                           ]}
                           activeOpacity={0.8}
                           onPress={createProject}
-                          disabled={
-                            projectName.trim() === ''
-                          }
+                          disabled={projectName.trim() === ''}
                         >
-                          <Text
-                            style={
-                              styles.createButtonText
-                            }
-                          >
+                          <Text style={styles.createButtonText}>
                             作成
                           </Text>
                         </TouchableOpacity>
@@ -265,10 +265,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF9F3',
     paddingHorizontal: 24,
   },
-
-  // --------------------
-  // Header
-  // --------------------
 
   header: {
     flexDirection: 'row',
@@ -315,10 +311,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#111111',
   },
-
-  // --------------------
-  // Project list
-  // --------------------
 
   projectList: {
     flex: 1,
@@ -391,10 +383,6 @@ const styles = StyleSheet.create({
     height: 110,
   },
 
-  // --------------------
-  // Add button
-  // --------------------
-
   addButton: {
     position: 'absolute',
     right: 24,
@@ -423,10 +411,6 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: '#111111',
   },
-
-  // --------------------
-  // Modal
-  // --------------------
 
   modalKeyboardView: {
     flex: 1,
