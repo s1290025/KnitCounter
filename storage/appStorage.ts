@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@knit_counter_app_data';
 
+export type Language = 'ja' | 'en';
+
 export type HistoryType = 'row' | 'stitch' | 'mark';
 
 export type HistoryItem = {
@@ -29,7 +31,7 @@ export type Project = {
 
 export type AppData = {
   projects: Project[];
-  language: 'ja' | 'en';
+  language: Language;
   theme: string;
 };
 
@@ -47,14 +49,22 @@ export async function loadAppData(): Promise<AppData> {
       return defaultData;
     }
 
-    return JSON.parse(raw) as AppData;
+    const parsed = JSON.parse(raw);
+
+    return {
+      ...defaultData,
+      ...parsed,
+    };
   } catch (error) {
     console.error('loadAppData error:', error);
+
     return defaultData;
   }
 }
 
-export async function saveAppData(data: AppData): Promise<void> {
+export async function saveAppData(
+  data: AppData
+): Promise<void> {
   try {
     await AsyncStorage.setItem(
       STORAGE_KEY,
@@ -71,7 +81,11 @@ export async function getProjectById(
 ): Promise<Project | null> {
   const data = await loadAppData();
 
-  return data.projects.find((project) => project.id === id) ?? null;
+  return (
+    data.projects.find(
+      (project) => project.id === id
+    ) ?? null
+  );
 }
 
 export async function updateProject(
@@ -88,5 +102,16 @@ export async function updateProject(
   await saveAppData({
     ...data,
     projects,
+  });
+}
+
+export async function updateLanguage(
+  language: Language
+): Promise<void> {
+  const data = await loadAppData();
+
+  await saveAppData({
+    ...data,
+    language,
   });
 }

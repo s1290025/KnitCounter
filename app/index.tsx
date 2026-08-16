@@ -1,5 +1,13 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import {
+  router,
+  useFocusEffect,
+} from 'expo-router';
+
+import {
+  useCallback,
+  useState,
+} from 'react';
+
 import {
   ActivityIndicator,
   Alert,
@@ -19,33 +27,49 @@ import {
 
 import {
   AppData,
+  Language,
   loadAppData,
   Project,
   saveAppData,
 } from '../storage/appStorage';
 
 export default function ProjectListScreen() {
-  const [appData, setAppData] = useState<AppData | null>(null);
+  const [appData, setAppData] =
+    useState<AppData | null>(null);
 
-  // 新規作成モーダル
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [projectName, setProjectName] = useState('');
+  const [
+    createModalVisible,
+    setCreateModalVisible,
+  ] = useState(false);
+
+  const [projectName, setProjectName] =
+    useState('');
+
   const [memo, setMemo] = useState('');
 
-  // 編集モーダル
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingProject, setEditingProject] =
-    useState<Project | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editMemo, setEditMemo] = useState('');
+  const [
+    editModalVisible,
+    setEditModalVisible,
+  ] = useState(false);
 
-  // 画面を開くたびに最新データを読み込む
+  const [
+    editingProject,
+    setEditingProject,
+  ] = useState<Project | null>(null);
+
+  const [editName, setEditName] =
+    useState('');
+
+  const [editMemo, setEditMemo] =
+    useState('');
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
       const load = async () => {
-        const data = await loadAppData();
+        const data =
+          await loadAppData();
 
         if (active) {
           setAppData(data);
@@ -60,6 +84,27 @@ export default function ProjectListScreen() {
     }, [])
   );
 
+  const language: Language =
+    appData?.language ?? 'ja';
+
+  const isJapanese =
+    language === 'ja';
+
+  const changeLanguage = async (
+    nextLanguage: Language
+  ) => {
+    if (!appData) return;
+
+    const nextData: AppData = {
+      ...appData,
+      language: nextLanguage,
+    };
+
+    setAppData(nextData);
+
+    await saveAppData(nextData);
+  };
+
   const openCreateModal = () => {
     setProjectName('');
     setMemo('');
@@ -68,6 +113,7 @@ export default function ProjectListScreen() {
 
   const closeCreateModal = () => {
     Keyboard.dismiss();
+
     setCreateModalVisible(false);
     setProjectName('');
     setMemo('');
@@ -76,10 +122,16 @@ export default function ProjectListScreen() {
   const createProject = async () => {
     if (!appData) return;
 
-    const name = projectName.trim();
+    const name =
+      projectName.trim();
 
     if (!name) return;
-    if (appData.projects.length >= 5) return;
+
+    if (
+      appData.projects.length >= 5
+    ) {
+      return;
+    }
 
     const project: Project = {
       id: `${Date.now()}-${Math.random()}`,
@@ -93,16 +145,22 @@ export default function ProjectListScreen() {
 
     const newData: AppData = {
       ...appData,
-      projects: [...appData.projects, project],
+      projects: [
+        ...appData.projects,
+        project,
+      ],
     };
 
     await saveAppData(newData);
+
     setAppData(newData);
 
     closeCreateModal();
   };
 
-  const openProject = (project: Project) => {
+  const openProject = (
+    project: Project
+  ) => {
     router.push({
       pathname: '/counter/[id]',
       params: {
@@ -111,10 +169,19 @@ export default function ProjectListScreen() {
     });
   };
 
-  const openEditModal = (project: Project) => {
+  const openEditModal = (
+    project: Project
+  ) => {
     setEditingProject(project);
-    setEditName(project.name);
-    setEditMemo(project.memo);
+
+    setEditName(
+      project.name
+    );
+
+    setEditMemo(
+      project.memo
+    );
+
     setEditModalVisible(true);
   };
 
@@ -123,68 +190,116 @@ export default function ProjectListScreen() {
 
     setEditModalVisible(false);
     setEditingProject(null);
+
     setEditName('');
     setEditMemo('');
   };
 
-  const saveEditedProject = async () => {
-    if (!appData || !editingProject) return;
+  const saveEditedProject =
+    async () => {
+      if (
+        !appData ||
+        !editingProject
+      ) {
+        return;
+      }
 
-    const name = editName.trim();
+      const name =
+        editName.trim();
 
-    if (!name) return;
+      if (!name) return;
 
-    const updatedProjects = appData.projects.map((project) =>
-      project.id === editingProject.id
-        ? {
-            ...project,
-            name,
-            memo: editMemo.trim(),
-          }
-        : project
-    );
+      const updatedProjects =
+        appData.projects.map(
+          (project) =>
+            project.id ===
+            editingProject.id
+              ? {
+                  ...project,
+                  name,
+                  memo:
+                    editMemo.trim(),
+                }
+              : project
+        );
 
-    const newData: AppData = {
-      ...appData,
-      projects: updatedProjects,
+      const newData: AppData = {
+        ...appData,
+        projects:
+          updatedProjects,
+      };
+
+      await saveAppData(
+        newData
+      );
+
+      setAppData(newData);
+
+      closeEditModal();
     };
 
-    await saveAppData(newData);
-    setAppData(newData);
-
-    closeEditModal();
-  };
-
   const deleteProject = () => {
-    if (!appData || !editingProject) return;
+    if (
+      !appData ||
+      !editingProject
+    ) {
+      return;
+    }
 
     Alert.alert(
-      '作品を削除',
-      `「${editingProject.name}」を削除しますか？\n履歴もすべて削除されます。`,
+      isJapanese
+        ? '作品を削除'
+        : 'Delete Project',
+
+      isJapanese
+        ? `「${editingProject.name}」を削除しますか？\n履歴もすべて削除されます。`
+        : `Delete "${editingProject.name}"?\nAll history will also be deleted.`,
+
       [
         {
-          text: 'キャンセル',
+          text: isJapanese
+            ? 'キャンセル'
+            : 'Cancel',
+
           style: 'cancel',
         },
+
         {
-          text: '削除',
-          style: 'destructive',
+          text: isJapanese
+            ? '削除'
+            : 'Delete',
 
-          onPress: async () => {
-            const updatedProjects = appData.projects.filter(
-              (project) => project.id !== editingProject.id
-            );
+          style:
+            'destructive',
 
-            const newData: AppData = {
-              ...appData,
-              projects: updatedProjects,
-            };
+          onPress:
+            async () => {
+              const
+                updatedProjects =
+                  appData.projects.filter(
+                    (project) =>
+                      project.id !==
+                      editingProject.id
+                  );
 
-            await saveAppData(newData);
-            setAppData(newData);
+              const newData:
+                AppData = {
+                ...appData,
 
-            closeEditModal();
-          },
+                projects:
+                  updatedProjects,
+              };
+
+              await saveAppData(
+                newData
+              );
+
+              setAppData(
+                newData
+              );
+
+              closeEditModal();
+            },
         },
       ]
     );
@@ -192,152 +307,335 @@ export default function ProjectListScreen() {
 
   if (!appData) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
+      <SafeAreaView
+        style={
+          styles.safeArea
+        }
+      >
+        <View
+          style={
+            styles.loadingContainer
+          }
+        >
+          <ActivityIndicator
+            size="large"
+          />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* ヘッダー */}
-        <View style={styles.header}>
-          <Text style={styles.title}>作品一覧</Text>
+    <SafeAreaView
+      style={styles.safeArea}
+    >
+      <View
+        style={styles.container}
+      >
+        {/* Header */}
+        <View
+          style={styles.header}
+        >
+          <Text
+            style={styles.title}
+          >
+            {isJapanese
+              ? '作品一覧'
+              : 'Projects'}
+          </Text>
 
-          <View style={styles.headerButtons}>
-            <TouchableOpacity
-              style={styles.languageButton}
-              activeOpacity={0.8}
+          <View
+            style={
+              styles.headerButtons
+            }
+          >
+            {/* Language switch */}
+            <View
+              style={
+                styles.languageSwitch
+              }
             >
-              <Text style={styles.languageText}>
-                日 / EN
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+
+                  isJapanese &&
+                    styles.languageOptionActive,
+                ]}
+                onPress={() =>
+                  changeLanguage(
+                    'ja'
+                  )
+                }
+              >
+                <Text
+                  style={[
+                    styles.languageOptionText,
+
+                    isJapanese &&
+                      styles.languageOptionTextActive,
+                  ]}
+                >
+                  日
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.languageOption,
+
+                  !isJapanese &&
+                    styles.languageOptionActive,
+                ]}
+                onPress={() =>
+                  changeLanguage(
+                    'en'
+                  )
+                }
+              >
+                <Text
+                  style={[
+                    styles.languageOptionText,
+
+                    !isJapanese &&
+                      styles.languageOptionTextActive,
+                  ]}
+                >
+                  EN
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              style={styles.themeButton}
-              activeOpacity={0.8}
+              style={
+                styles.themeButton
+              }
             >
-              <Text style={styles.themeText}>
+              <Text
+                style={
+                  styles.themeText
+                }
+              >
                 ◐
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 作品一覧 */}
+        {/* Project list */}
         <ScrollView
-          style={styles.projectList}
-          contentContainerStyle={styles.projectListContent}
-          showsVerticalScrollIndicator={false}
+          style={
+            styles.projectList
+          }
+          contentContainerStyle={
+            styles.projectListContent
+          }
+          showsVerticalScrollIndicator={
+            false
+          }
         >
-          {appData.projects.map((project) => (
-            <View
-              key={project.id}
-              style={styles.projectCard}
-            >
-              {/* 左側：カウンター画面を開く */}
-              <TouchableOpacity
-                style={styles.projectInfoButton}
-                activeOpacity={0.8}
-                onPress={() => openProject(project)}
+          {appData.projects.map(
+            (project) => (
+              <View
+                key={
+                  project.id
+                }
+                style={
+                  styles.projectCard
+                }
               >
-                <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>
-                    {project.name}
-                  </Text>
-
-                  <Text style={styles.projectCount}>
-                    {project.row}段 / {project.stitch}目
-                  </Text>
-
-                  {project.memo !== '' && (
+                <TouchableOpacity
+                  style={
+                    styles.projectInfoButton
+                  }
+                  activeOpacity={
+                    0.8
+                  }
+                  onPress={() =>
+                    openProject(
+                      project
+                    )
+                  }
+                >
+                  <View
+                    style={
+                      styles.projectInfo
+                    }
+                  >
                     <Text
-                      style={styles.projectMemo}
-                      numberOfLines={1}
+                      style={
+                        styles.projectName
+                      }
                     >
-                      {project.memo}
+                      {
+                        project.name
+                      }
                     </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
 
-              {/* 右側：編集 */}
-              <TouchableOpacity
-                style={styles.editButton}
-                activeOpacity={0.8}
-                onPress={() => openEditModal(project)}
-              >
-                <Text style={styles.editButtonText}>
-                  ✎
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+                    <Text
+                      style={
+                        styles.projectCount
+                      }
+                    >
+                      {isJapanese
+                        ? `${project.row}段 / ${project.stitch}目`
+                        : `${project.row} Rows / ${project.stitch} Stitches`}
+                    </Text>
 
-          <View style={styles.bottomSpace} />
+                    {project.memo !==
+                      '' && (
+                      <Text
+                        style={
+                          styles.projectMemo
+                        }
+                        numberOfLines={
+                          1
+                        }
+                      >
+                        {
+                          project.memo
+                        }
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={
+                    styles.editButton
+                  }
+                  onPress={() =>
+                    openEditModal(
+                      project
+                    )
+                  }
+                >
+                  <Text
+                    style={
+                      styles.editButtonText
+                    }
+                  >
+                    ✎
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+
+          <View
+            style={
+              styles.bottomSpace
+            }
+          />
         </ScrollView>
 
-        {/* 作品追加 */}
-        {appData.projects.length < 5 && (
+        {appData.projects.length <
+          5 && (
           <TouchableOpacity
-            style={styles.addButton}
-            activeOpacity={0.8}
-            onPress={openCreateModal}
+            style={
+              styles.addButton
+            }
+            onPress={
+              openCreateModal
+            }
           >
-            <Text style={styles.addButtonText}>
+            <Text
+              style={
+                styles.addButtonText
+              }
+            >
               ＋
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* 新規作成モーダル */}
+        {/* Create modal */}
         <Modal
-          visible={createModalVisible}
+          visible={
+            createModalVisible
+          }
           transparent
           animationType="fade"
-          onRequestClose={closeCreateModal}
+          onRequestClose={
+            closeCreateModal
+          }
         >
           <KeyboardAvoidingView
-            style={styles.modalKeyboardView}
+            style={
+              styles.modalKeyboardView
+            }
             behavior={
-              Platform.OS === 'ios'
+              Platform.OS ===
+              'ios'
                 ? 'padding'
                 : 'height'
             }
           >
             <TouchableWithoutFeedback
-              onPress={Keyboard.dismiss}
-              accessible={false}
+              onPress={
+                Keyboard.dismiss
+              }
             >
-              <View style={styles.modalOverlay}>
+              <View
+                style={
+                  styles.modalOverlay
+                }
+              >
                 <TouchableWithoutFeedback>
-                  <View style={styles.modalContent}>
+                  <View
+                    style={
+                      styles.modalContent
+                    }
+                  >
                     <ScrollView
                       keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={false}
                     >
-                      <Text style={styles.modalTitle}>
-                        新しい作品
+                      <Text
+                        style={
+                          styles.modalTitle
+                        }
+                      >
+                        {isJapanese
+                          ? '新しい作品'
+                          : 'New Project'}
                       </Text>
 
-                      <Text style={styles.label}>
-                        作品名
+                      <Text
+                        style={
+                          styles.label
+                        }
+                      >
+                        {isJapanese
+                          ? '作品名'
+                          : 'Project Name'}
                       </Text>
 
                       <TextInput
-                        style={styles.input}
-                        value={projectName}
-                        onChangeText={setProjectName}
-                        placeholder="作品名"
+                        style={
+                          styles.input
+                        }
+                        value={
+                          projectName
+                        }
+                        onChangeText={
+                          setProjectName
+                        }
+                        placeholder={
+                          isJapanese
+                            ? '作品名'
+                            : 'Project Name'
+                        }
                         autoFocus
                       />
 
-                      <Text style={styles.label}>
-                        メモ
+                      <Text
+                        style={
+                          styles.label
+                        }
+                      >
+                        {isJapanese
+                          ? 'メモ'
+                          : 'Note'}
                       </Text>
 
                       <TextInput
@@ -345,34 +643,68 @@ export default function ProjectListScreen() {
                           styles.input,
                           styles.memoInput,
                         ]}
-                        value={memo}
-                        onChangeText={setMemo}
-                        placeholder="任意"
+                        value={
+                          memo
+                        }
+                        onChangeText={
+                          setMemo
+                        }
+                        placeholder={
+                          isJapanese
+                            ? '任意'
+                            : 'Optional'
+                        }
                         multiline
-                        textAlignVertical="top"
                       />
 
-                      <View style={styles.modalButtons}>
+                      <View
+                        style={
+                          styles.modalButtons
+                        }
+                      >
                         <TouchableOpacity
-                          style={styles.cancelButton}
-                          onPress={closeCreateModal}
+                          style={
+                            styles.cancelButton
+                          }
+                          onPress={
+                            closeCreateModal
+                          }
                         >
-                          <Text style={styles.cancelButtonText}>
-                            キャンセル
+                          <Text
+                            style={
+                              styles.cancelButtonText
+                            }
+                          >
+                            {isJapanese
+                              ? 'キャンセル'
+                              : 'Cancel'}
                           </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                           style={[
                             styles.createButton,
-                            projectName.trim() === '' &&
+
+                            projectName.trim() ===
+                              '' &&
                               styles.createButtonDisabled,
                           ]}
-                          onPress={createProject}
-                          disabled={projectName.trim() === ''}
+                          onPress={
+                            createProject
+                          }
+                          disabled={
+                            projectName.trim() ===
+                            ''
+                          }
                         >
-                          <Text style={styles.createButtonText}>
-                            作成
+                          <Text
+                            style={
+                              styles.createButtonText
+                            }
+                          >
+                            {isJapanese
+                              ? '作成'
+                              : 'Create'}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -384,50 +716,87 @@ export default function ProjectListScreen() {
           </KeyboardAvoidingView>
         </Modal>
 
-        {/* 編集モーダル */}
+        {/* Edit modal */}
         <Modal
-          visible={editModalVisible}
+          visible={
+            editModalVisible
+          }
           transparent
           animationType="fade"
-          onRequestClose={closeEditModal}
+          onRequestClose={
+            closeEditModal
+          }
         >
           <KeyboardAvoidingView
-            style={styles.modalKeyboardView}
+            style={
+              styles.modalKeyboardView
+            }
             behavior={
-              Platform.OS === 'ios'
+              Platform.OS ===
+              'ios'
                 ? 'padding'
                 : 'height'
             }
           >
             <TouchableWithoutFeedback
-              onPress={Keyboard.dismiss}
-              accessible={false}
+              onPress={
+                Keyboard.dismiss
+              }
             >
-              <View style={styles.modalOverlay}>
+              <View
+                style={
+                  styles.modalOverlay
+                }
+              >
                 <TouchableWithoutFeedback>
-                  <View style={styles.modalContent}>
+                  <View
+                    style={
+                      styles.modalContent
+                    }
+                  >
                     <ScrollView
                       keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={false}
                     >
-                      <Text style={styles.modalTitle}>
-                        作品を編集
+                      <Text
+                        style={
+                          styles.modalTitle
+                        }
+                      >
+                        {isJapanese
+                          ? '作品を編集'
+                          : 'Edit Project'}
                       </Text>
 
-                      <Text style={styles.label}>
-                        作品名
+                      <Text
+                        style={
+                          styles.label
+                        }
+                      >
+                        {isJapanese
+                          ? '作品名'
+                          : 'Project Name'}
                       </Text>
 
                       <TextInput
-                        style={styles.input}
-                        value={editName}
-                        onChangeText={setEditName}
-                        placeholder="作品名"
-                        autoFocus
+                        style={
+                          styles.input
+                        }
+                        value={
+                          editName
+                        }
+                        onChangeText={
+                          setEditName
+                        }
                       />
 
-                      <Text style={styles.label}>
-                        メモ
+                      <Text
+                        style={
+                          styles.label
+                        }
+                      >
+                        {isJapanese
+                          ? 'メモ'
+                          : 'Note'}
                       </Text>
 
                       <TextInput
@@ -435,45 +804,88 @@ export default function ProjectListScreen() {
                           styles.input,
                           styles.memoInput,
                         ]}
-                        value={editMemo}
-                        onChangeText={setEditMemo}
-                        placeholder="任意"
+                        value={
+                          editMemo
+                        }
+                        onChangeText={
+                          setEditMemo
+                        }
+                        placeholder={
+                          isJapanese
+                            ? '任意'
+                            : 'Optional'
+                        }
                         multiline
-                        textAlignVertical="top"
                       />
 
-                      <View style={styles.modalButtons}>
+                      <View
+                        style={
+                          styles.modalButtons
+                        }
+                      >
                         <TouchableOpacity
-                          style={styles.cancelButton}
-                          onPress={closeEditModal}
+                          style={
+                            styles.cancelButton
+                          }
+                          onPress={
+                            closeEditModal
+                          }
                         >
-                          <Text style={styles.cancelButtonText}>
-                            キャンセル
+                          <Text
+                            style={
+                              styles.cancelButtonText
+                            }
+                          >
+                            {isJapanese
+                              ? 'キャンセル'
+                              : 'Cancel'}
                           </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                           style={[
                             styles.createButton,
-                            editName.trim() === '' &&
+
+                            editName.trim() ===
+                              '' &&
                               styles.createButtonDisabled,
                           ]}
-                          onPress={saveEditedProject}
-                          disabled={editName.trim() === ''}
+                          onPress={
+                            saveEditedProject
+                          }
+                          disabled={
+                            editName.trim() ===
+                            ''
+                          }
                         >
-                          <Text style={styles.createButtonText}>
-                            保存
+                          <Text
+                            style={
+                              styles.createButtonText
+                            }
+                          >
+                            {isJapanese
+                              ? '保存'
+                              : 'Save'}
                           </Text>
                         </TouchableOpacity>
                       </View>
 
                       <TouchableOpacity
-                        style={styles.deleteButton}
-                        activeOpacity={0.8}
-                        onPress={deleteProject}
+                        style={
+                          styles.deleteButton
+                        }
+                        onPress={
+                          deleteProject
+                        }
                       >
-                        <Text style={styles.deleteButtonText}>
-                          この作品を削除
+                        <Text
+                          style={
+                            styles.deleteButtonText
+                          }
+                        >
+                          {isJapanese
+                            ? 'この作品を削除'
+                            : 'Delete Project'}
                         </Text>
                       </TouchableOpacity>
                     </ScrollView>
@@ -488,246 +900,281 @@ export default function ProjectListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFF9F3',
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF9F3',
-    paddingHorizontal: 24,
-  },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 20,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  languageButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: '#F2E7DC',
-  },
-
-  languageText: {
-    fontSize: 16,
-  },
-
-  themeButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F2E7DC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  themeText: {
-    fontSize: 24,
-  },
-
-  projectList: {
-    flex: 1,
-  },
-
-  projectListContent: {
-    paddingTop: 12,
-  },
-
-  projectCard: {
-    minHeight: 100,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    marginBottom: 14,
-    overflow: 'hidden',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 3,
+const styles =
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor:
+        '#FFF9F3',
     },
 
-    elevation: 2,
-  },
+    loadingContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
 
-  projectInfoButton: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingLeft: 20,
-    paddingVertical: 16,
-  },
+    container: {
+      flex: 1,
+      backgroundColor:
+        '#FFF9F3',
+      paddingHorizontal: 24,
+    },
 
-  projectInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
+    header: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      paddingTop: 24,
+      paddingBottom: 20,
+    },
 
-  projectName: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+    },
 
-  projectCount: {
-    marginTop: 6,
-    fontSize: 15,
-    color: '#77706B',
-  },
+    headerButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
 
-  projectMemo: {
-    marginTop: 5,
-    fontSize: 14,
-    color: '#9A918B',
-  },
+    languageSwitch: {
+      flexDirection: 'row',
+      backgroundColor:
+        '#F2E7DC',
+      borderRadius: 22,
+      padding: 3,
+    },
 
-  editButton: {
-    width: 68,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    languageOption: {
+      minWidth: 38,
+      height: 36,
+      paddingHorizontal: 8,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      borderRadius: 18,
+    },
 
-  editButtonText: {
-    fontSize: 24,
-    color: '#333333',
-  },
+    languageOptionActive: {
+      backgroundColor:
+        '#FFFFFF',
+    },
 
-  bottomSpace: {
-    height: 110,
-  },
+    languageOptionText: {
+      fontSize: 14,
+      color: '#837A74',
+    },
 
-  addButton: {
-    position: 'absolute',
-    right: 24,
-    bottom: 32,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#D9A3A3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    languageOptionTextActive: {
+      color: '#111111',
+      fontWeight: '700',
+    },
 
-  addButtonText: {
-    fontSize: 42,
-  },
+    themeButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor:
+        '#F2E7DC',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
 
-  modalKeyboardView: {
-    flex: 1,
-  },
+    themeText: {
+      fontSize: 24,
+    },
 
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
+    projectList: {
+      flex: 1,
+    },
 
-  modalContent: {
-    backgroundColor: '#FFFDFC',
-    borderRadius: 28,
-    padding: 24,
-    maxHeight: '85%',
-  },
+    projectListContent: {
+      paddingTop: 12,
+    },
 
-  modalTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 28,
-  },
+    projectCard: {
+      minHeight: 100,
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      backgroundColor:
+        '#FFFFFF',
+      borderRadius: 22,
+      marginBottom: 14,
+      overflow: 'hidden',
+    },
 
-  label: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
+    projectInfoButton: {
+      flex: 1,
+      justifyContent:
+        'center',
+      paddingLeft: 20,
+      paddingVertical: 16,
+    },
 
-  input: {
-    minHeight: 56,
-    borderWidth: 1.5,
-    borderColor: '#DED4CC',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 22,
-    backgroundColor: '#FFFFFF',
-    fontSize: 17,
-  },
+    projectInfo: {
+      flex: 1,
+      justifyContent:
+        'center',
+    },
 
-  memoInput: {
-    minHeight: 100,
-  },
+    projectName: {
+      fontSize: 20,
+      fontWeight: '700',
+    },
 
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+    projectCount: {
+      marginTop: 6,
+      fontSize: 15,
+      color: '#77706B',
+    },
 
-  cancelButton: {
-    flex: 1,
-    minHeight: 54,
-    borderRadius: 18,
-    backgroundColor: '#F1EBE6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    projectMemo: {
+      marginTop: 5,
+      fontSize: 14,
+      color: '#9A918B',
+    },
 
-  cancelButtonText: {
-    fontWeight: '600',
-  },
+    editButton: {
+      width: 68,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
 
-  createButton: {
-    flex: 1,
-    minHeight: 54,
-    borderRadius: 18,
-    backgroundColor: '#D9A3A3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    editButtonText: {
+      fontSize: 24,
+    },
 
-  createButtonDisabled: {
-    opacity: 0.4,
-  },
+    bottomSpace: {
+      height: 110,
+    },
 
-  createButtonText: {
-    fontWeight: '700',
-  },
+    addButton: {
+      position: 'absolute',
+      right: 24,
+      bottom: 32,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor:
+        '#D9A3A3',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
 
-  deleteButton: {
-    marginTop: 28,
-    minHeight: 50,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FCE9E7',
-  },
+    addButtonText: {
+      fontSize: 42,
+    },
 
-  deleteButtonText: {
-    color: '#B64035',
-    fontWeight: '700',
-  },
-});
+    modalKeyboardView: {
+      flex: 1,
+    },
+
+    modalOverlay: {
+      flex: 1,
+      justifyContent:
+        'center',
+      paddingHorizontal: 24,
+      backgroundColor:
+        'rgba(0,0,0,0.25)',
+    },
+
+    modalContent: {
+      backgroundColor:
+        '#FFFDFC',
+      borderRadius: 28,
+      padding: 24,
+      maxHeight: '85%',
+    },
+
+    modalTitle: {
+      fontSize: 26,
+      fontWeight: '700',
+      marginBottom: 28,
+    },
+
+    label: {
+      fontSize: 17,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+
+    input: {
+      minHeight: 56,
+      borderWidth: 1.5,
+      borderColor:
+        '#DED4CC',
+      borderRadius: 18,
+      padding: 14,
+      marginBottom: 22,
+      backgroundColor:
+        '#FFFFFF',
+      fontSize: 17,
+    },
+
+    memoInput: {
+      minHeight: 100,
+    },
+
+    modalButtons: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+
+    cancelButton: {
+      flex: 1,
+      minHeight: 54,
+      borderRadius: 18,
+      backgroundColor:
+        '#F1EBE6',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    cancelButtonText: {
+      fontWeight: '600',
+    },
+
+    createButton: {
+      flex: 1,
+      minHeight: 54,
+      borderRadius: 18,
+      backgroundColor:
+        '#D9A3A3',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    createButtonDisabled: {
+      opacity: 0.4,
+    },
+
+    createButtonText: {
+      fontWeight: '700',
+    },
+
+    deleteButton: {
+      marginTop: 28,
+      minHeight: 50,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      backgroundColor:
+        '#FCE9E7',
+    },
+
+    deleteButtonText: {
+      color: '#B64035',
+      fontWeight: '700',
+    },
+  });
