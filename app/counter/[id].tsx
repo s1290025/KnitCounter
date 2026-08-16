@@ -28,8 +28,12 @@ import {
   Project,
   loadAppData,
   saveAppData,
-  updateProject
+  updateProject,
 } from '../../storage/appStorage';
+
+import {
+  themes,
+} from '../../theme/themes';
 
 export default function CounterScreen() {
   const { id } =
@@ -37,7 +41,10 @@ export default function CounterScreen() {
       id: string;
     }>();
 
-  const [project, setProject] =
+  const [
+    project,
+    setProject,
+  ] =
     useState<Project | null>(
       null
     );
@@ -49,6 +56,14 @@ export default function CounterScreen() {
     useState<Language>('ja');
 
   const [
+    themeName,
+    setThemeName,
+  ] =
+    useState<
+      keyof typeof themes
+    >('pink');
+
+  const [
     historyModalVisible,
     setHistoryModalVisible,
   ] = useState(false);
@@ -57,28 +72,34 @@ export default function CounterScreen() {
     useCallback(() => {
       let active = true;
 
-      const load = async () => {
-        if (!id) return;
+      const load =
+        async () => {
+          if (!id) return;
 
-        const data =
-          await loadAppData();
+          const data =
+            await loadAppData();
 
-        const savedProject =
-          data.projects.find(
-            (item) =>
-              item.id === id
-          ) ?? null;
+          const savedProject =
+            data.projects.find(
+              (project) =>
+                project.id ===
+                id
+            ) ?? null;
 
-        if (active) {
-          setProject(
-            savedProject
-          );
+          if (active) {
+            setProject(
+              savedProject
+            );
 
-          setLanguage(
-            data.language
-          );
-        }
-      };
+            setLanguage(
+              data.language
+            );
+
+            setThemeName(
+              data.theme
+            );
+          }
+        };
 
       load();
 
@@ -88,13 +109,35 @@ export default function CounterScreen() {
     }, [id])
   );
 
+  if (!project) {
+    return (
+      <SafeAreaView
+        style={
+          styles.loadingSafeArea
+        }
+      >
+        <View
+          style={
+            styles.loadingContainer
+          }
+        >
+          <ActivityIndicator
+            size="large"
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const currentTheme =
+    themes[themeName];
+
   const isJapanese =
     language === 'ja';
 
   const changeLanguage =
     async (
-      nextLanguage:
-        Language
+      nextLanguage: Language
     ) => {
       const data =
         await loadAppData();
@@ -141,9 +184,7 @@ export default function CounterScreen() {
 
   const addRow =
     async () => {
-      if (!project) return;
-
-      const previousState =
+      const previous =
         saveUndo(project);
 
       let history = [
@@ -156,13 +197,10 @@ export default function CounterScreen() {
         const item:
           HistoryItem = {
           id: `${Date.now()}-${Math.random()}`,
-
           row:
             project.row,
-
           stitch:
             project.stitch,
-
           type: 'row',
         };
 
@@ -174,26 +212,21 @@ export default function CounterScreen() {
 
       await persistProject({
         ...project,
-
         row:
           project.row + 1,
-
         stitch: 0,
-
         history,
 
         undoStack: [
           ...project.undoStack,
-          previousState,
+          previous,
         ],
       });
     };
 
   const addStitch =
     async () => {
-      if (!project) return;
-
-      const previousState =
+      const previous =
         saveUndo(project);
 
       await persistProject({
@@ -205,16 +238,14 @@ export default function CounterScreen() {
 
         undoStack: [
           ...project.undoStack,
-          previousState,
+          previous,
         ],
       });
     };
 
   const startNewRow =
     async () => {
-      if (!project) return;
-
-      const previousState =
+      const previous =
         saveUndo(project);
 
       let history = [
@@ -246,16 +277,14 @@ export default function CounterScreen() {
 
         undoStack: [
           ...project.undoStack,
-          previousState,
+          previous,
         ],
       });
     };
 
   const startNewStitch =
     async () => {
-      if (!project) return;
-
-      const previousState =
+      const previous =
         saveUndo(project);
 
       let history = [
@@ -281,35 +310,28 @@ export default function CounterScreen() {
 
       await persistProject({
         ...project,
-
         stitch: 0,
-
         history,
 
         undoStack: [
           ...project.undoStack,
-          previousState,
+          previous,
         ],
       });
     };
 
   const addMark =
     async () => {
-      if (!project) return;
-
-      const previousState =
+      const previous =
         saveUndo(project);
 
       const item:
         HistoryItem = {
         id: `${Date.now()}-${Math.random()}`,
-
         row:
           project.row,
-
         stitch:
           project.stitch,
-
         type: 'mark',
       };
 
@@ -323,15 +345,13 @@ export default function CounterScreen() {
 
         undoStack: [
           ...project.undoStack,
-          previousState,
+          previous,
         ],
       });
     };
 
   const undo =
     async () => {
-      if (!project) return;
-
       if (
         project.undoStack
           .length === 0
@@ -367,13 +387,11 @@ export default function CounterScreen() {
 
   const recentHistory =
     useMemo(() => {
-      return (
-        project?.history.slice(
-          0,
-          3
-        ) ?? []
+      return project.history.slice(
+        0,
+        3
       );
-    }, [project]);
+    }, [project.history]);
 
   const getHistoryTypeLabel =
     (
@@ -400,34 +418,27 @@ export default function CounterScreen() {
         : 'New Stitch';
     };
 
-  if (!project) {
-    return (
-      <SafeAreaView
-        style={
-          styles.safeArea
-        }
-      >
-        <View
-          style={
-            styles.loadingContainer
-          }
-        >
-          <ActivityIndicator
-            size="large"
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView
-      style={styles.safeArea}
+      style={[
+        styles.safeArea,
+
+        {
+          backgroundColor:
+            currentTheme.background,
+        },
+      ]}
     >
       <View
-        style={styles.container}
+        style={[
+          styles.container,
+
+          {
+            backgroundColor:
+              currentTheme.background,
+          },
+        ]}
       >
-        {/* Header */}
         <View
           style={styles.header}
         >
@@ -440,34 +451,51 @@ export default function CounterScreen() {
             }
           >
             <Text
-              style={
-                styles.backText
-              }
+              style={[
+                styles.backText,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
             >
               ‹
             </Text>
           </TouchableOpacity>
 
           <Text
-            style={
-              styles.projectName
-            }
+            style={[
+              styles.projectName,
+
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
             numberOfLines={1}
           >
             {project.name}
           </Text>
 
           <View
-            style={
-              styles.languageSwitch
-            }
+            style={[
+              styles.languageSwitch,
+
+              {
+                backgroundColor:
+                  currentTheme.soft,
+              },
+            ]}
           >
             <TouchableOpacity
               style={[
                 styles.languageOption,
 
-                isJapanese &&
-                  styles.languageOptionActive,
+                isJapanese && {
+                  backgroundColor:
+                    currentTheme.surface,
+                },
               ]}
               onPress={() =>
                 changeLanguage(
@@ -476,12 +504,17 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={[
-                  styles.languageOptionText,
+                style={{
+                  color:
+                    isJapanese
+                      ? currentTheme.text
+                      : currentTheme.subText,
 
-                  isJapanese &&
-                    styles.languageOptionTextActive,
-                ]}
+                  fontWeight:
+                    isJapanese
+                      ? '700'
+                      : '400',
+                }}
               >
                 日
               </Text>
@@ -491,8 +524,10 @@ export default function CounterScreen() {
               style={[
                 styles.languageOption,
 
-                !isJapanese &&
-                  styles.languageOptionActive,
+                !isJapanese && {
+                  backgroundColor:
+                    currentTheme.surface,
+                },
               ]}
               onPress={() =>
                 changeLanguage(
@@ -501,12 +536,17 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={[
-                  styles.languageOptionText,
+                style={{
+                  color:
+                    !isJapanese
+                      ? currentTheme.text
+                      : currentTheme.subText,
 
-                  !isJapanese &&
-                    styles.languageOptionTextActive,
-                ]}
+                  fontWeight:
+                    !isJapanese
+                      ? '700'
+                      : '400',
+                }}
               >
                 EN
               </Text>
@@ -515,18 +555,24 @@ export default function CounterScreen() {
         </View>
 
         <ScrollView
-          style={
-            styles.content
-          }
+          style={styles.content}
           showsVerticalScrollIndicator={
             false
           }
         >
           {/* History */}
           <TouchableOpacity
-            style={
-              styles.historyArea
-            }
+            style={[
+              styles.historyArea,
+
+              {
+                backgroundColor:
+                  currentTheme.surface,
+
+                borderColor:
+                  currentTheme.border,
+              },
+            ]}
             onPress={() =>
               setHistoryModalVisible(
                 true
@@ -539,9 +585,14 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.sectionTitle
-                }
+                style={[
+                  styles.sectionTitle,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 {isJapanese
                   ? '最近の履歴'
@@ -549,9 +600,12 @@ export default function CounterScreen() {
               </Text>
 
               <Text
-                style={
-                  styles.historyArrow
-                }
+                style={{
+                  color:
+                    currentTheme.subText,
+
+                  fontSize: 28,
+                }}
               >
                 ›
               </Text>
@@ -565,14 +619,17 @@ export default function CounterScreen() {
               {recentHistory.map(
                 (item) => (
                   <View
-                    key={
-                      item.id
-                    }
+                    key={item.id}
                     style={
                       styles.historyRow
                     }
                   >
-                    <Text>
+                    <Text
+                      style={{
+                        color:
+                          currentTheme.text,
+                      }}
+                    >
                       {isJapanese
                         ? `${item.row}段　${item.stitch}目`
                         : `${item.row} Row　${item.stitch} Stitches`}
@@ -581,14 +638,23 @@ export default function CounterScreen() {
                     {item.type ===
                       'mark' && (
                       <View
-                        style={
-                          styles.pausedBadge
-                        }
+                        style={[
+                          styles.pausedBadge,
+
+                          {
+                            backgroundColor:
+                              currentTheme.soft,
+                          },
+                        ]}
                       >
                         <Text
-                          style={
-                            styles.pausedBadgeText
-                          }
+                          style={{
+                            color:
+                              currentTheme.text,
+
+                            fontSize:
+                              12,
+                          }}
                         >
                           {isJapanese
                             ? '途中'
@@ -602,7 +668,7 @@ export default function CounterScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Rows */}
+          {/* Row */}
           <View
             style={
               styles.counterSection
@@ -614,17 +680,27 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.counterNumber
-                }
+                style={[
+                  styles.counterNumber,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 {project.row}
               </Text>
 
               <Text
-                style={
-                  styles.counterUnit
-                }
+                style={[
+                  styles.counterUnit,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 {isJapanese
                   ? '段'
@@ -633,17 +709,27 @@ export default function CounterScreen() {
             </View>
 
             <TouchableOpacity
-              style={
-                styles.plusButton
-              }
+              style={[
+                styles.plusButton,
+
+                {
+                  backgroundColor:
+                    currentTheme.accent,
+                },
+              ]}
               onPress={
                 addRow
               }
             >
               <Text
-                style={
-                  styles.plusText
-                }
+                style={[
+                  styles.plusText,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 ＋
               </Text>
@@ -658,9 +744,10 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.newCountText
-                }
+                style={{
+                  color:
+                    currentTheme.subText,
+                }}
               >
                 {isJapanese
                   ? '新しい段'
@@ -669,7 +756,7 @@ export default function CounterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Stitches */}
+          {/* Stitch */}
           <View
             style={
               styles.counterSection
@@ -681,17 +768,27 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.counterNumber
-                }
+                style={[
+                  styles.counterNumber,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 {project.stitch}
               </Text>
 
               <Text
-                style={
-                  styles.counterUnit
-                }
+                style={[
+                  styles.counterUnit,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 {isJapanese
                   ? '目'
@@ -700,17 +797,27 @@ export default function CounterScreen() {
             </View>
 
             <TouchableOpacity
-              style={
-                styles.plusButton
-              }
+              style={[
+                styles.plusButton,
+
+                {
+                  backgroundColor:
+                    currentTheme.accent,
+                },
+              ]}
               onPress={
                 addStitch
               }
             >
               <Text
-                style={
-                  styles.plusText
-                }
+                style={[
+                  styles.plusText,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
               >
                 ＋
               </Text>
@@ -725,9 +832,10 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.newCountText
-                }
+                style={{
+                  color:
+                    currentTheme.subText,
+                }}
               >
                 {isJapanese
                   ? '新しい目'
@@ -743,17 +851,26 @@ export default function CounterScreen() {
             }
           >
             <TouchableOpacity
-              style={
-                styles.markButton
-              }
+              style={[
+                styles.markButton,
+
+                {
+                  backgroundColor:
+                    currentTheme.soft,
+                },
+              ]}
               onPress={
                 addMark
               }
             >
               <Text
-                style={
-                  styles.markText
-                }
+                style={{
+                  color:
+                    currentTheme.text,
+
+                  fontWeight:
+                    '600',
+                }}
               >
                 {isJapanese
                   ? '区切り'
@@ -764,6 +881,11 @@ export default function CounterScreen() {
             <TouchableOpacity
               style={[
                 styles.undoButton,
+
+                {
+                  backgroundColor:
+                    currentTheme.soft,
+                },
 
                 project
                   .undoStack
@@ -780,25 +902,41 @@ export default function CounterScreen() {
               }
             >
               <Text
-                style={
-                  styles.undoText
-                }
+                style={{
+                  color:
+                    currentTheme.text,
+
+                  fontSize: 28,
+                }}
               >
                 ↶
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Note */}
+          {/* Memo */}
           <View
-            style={
-              styles.memoArea
-            }
+            style={[
+              styles.memoArea,
+
+              {
+                backgroundColor:
+                  currentTheme.surface,
+
+                borderColor:
+                  currentTheme.border,
+              },
+            ]}
           >
             <Text
-              style={
-                styles.sectionTitle
-              }
+              style={[
+                styles.sectionTitle,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
             >
               {isJapanese
                 ? 'メモ'
@@ -806,9 +944,16 @@ export default function CounterScreen() {
             </Text>
 
             <Text
-              style={
-                styles.memoText
-              }
+              style={[
+                styles.memoText,
+
+                {
+                  color:
+                    project.memo
+                      ? currentTheme.text
+                      : currentTheme.subText,
+                },
+              ]}
             >
               {project.memo ||
                 (isJapanese
@@ -837,9 +982,14 @@ export default function CounterScreen() {
             }
           >
             <View
-              style={
-                styles.historyModal
-              }
+              style={[
+                styles.historyModal,
+
+                {
+                  backgroundColor:
+                    currentTheme.surface,
+                },
+              ]}
             >
               <View
                 style={
@@ -847,9 +997,14 @@ export default function CounterScreen() {
                 }
               >
                 <Text
-                  style={
-                    styles.modalTitle
-                  }
+                  style={[
+                    styles.modalTitle,
+
+                    {
+                      color:
+                        currentTheme.text,
+                    },
+                  ]}
                 >
                   {isJapanese
                     ? '履歴'
@@ -864,9 +1019,12 @@ export default function CounterScreen() {
                   }
                 >
                   <Text
-                    style={
-                      styles.closeText
-                    }
+                    style={{
+                      color:
+                        currentTheme.text,
+
+                      fontSize: 30,
+                    }}
                   >
                     ×
                   </Text>
@@ -877,18 +1035,26 @@ export default function CounterScreen() {
                 {project.history.map(
                   (item) => (
                     <View
-                      key={
-                        item.id
-                      }
-                      style={
-                        styles.fullHistoryRow
-                      }
+                      key={item.id}
+                      style={[
+                        styles.fullHistoryRow,
+
+                        {
+                          borderBottomColor:
+                            currentTheme.border,
+                        },
+                      ]}
                     >
                       <View>
                         <Text
-                          style={
-                            styles.fullHistoryCount
-                          }
+                          style={[
+                            styles.fullHistoryCount,
+
+                            {
+                              color:
+                                currentTheme.text,
+                            },
+                          ]}
                         >
                           {isJapanese
                             ? `${item.row}段　${item.stitch}目`
@@ -896,9 +1062,14 @@ export default function CounterScreen() {
                         </Text>
 
                         <Text
-                          style={
-                            styles.fullHistoryType
-                          }
+                          style={[
+                            styles.fullHistoryType,
+
+                            {
+                              color:
+                                currentTheme.subText,
+                            },
+                          ]}
                         >
                           {getHistoryTypeLabel(
                             item.type
@@ -909,14 +1080,23 @@ export default function CounterScreen() {
                       {item.type ===
                         'mark' && (
                         <View
-                          style={
-                            styles.pausedBadge
-                          }
+                          style={[
+                            styles.pausedBadge,
+
+                            {
+                              backgroundColor:
+                                currentTheme.soft,
+                            },
+                          ]}
                         >
                           <Text
-                            style={
-                              styles.pausedBadgeText
-                            }
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontSize:
+                                12,
+                            }}
                           >
                             {isJapanese
                               ? '途中'
@@ -938,13 +1118,7 @@ export default function CounterScreen() {
 
 const styles =
   StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor:
-        '#FFF9F3',
-    },
-
-    container: {
+    loadingSafeArea: {
       flex: 1,
       backgroundColor:
         '#FFF9F3',
@@ -955,6 +1129,14 @@ const styles =
       alignItems: 'center',
       justifyContent:
         'center',
+    },
+
+    safeArea: {
+      flex: 1,
+    },
+
+    container: {
+      flex: 1,
     },
 
     header: {
@@ -981,8 +1163,6 @@ const styles =
 
     languageSwitch: {
       flexDirection: 'row',
-      backgroundColor:
-        '#F2E7DC',
       borderRadius: 22,
       padding: 3,
     },
@@ -997,21 +1177,6 @@ const styles =
       borderRadius: 18,
     },
 
-    languageOptionActive: {
-      backgroundColor:
-        '#FFFFFF',
-    },
-
-    languageOptionText: {
-      fontSize: 14,
-      color: '#837A74',
-    },
-
-    languageOptionTextActive: {
-      color: '#111111',
-      fontWeight: '700',
-    },
-
     content: {
       flex: 1,
       paddingHorizontal: 24,
@@ -1020,10 +1185,9 @@ const styles =
     historyArea: {
       minHeight: 145,
       borderRadius: 22,
-      backgroundColor:
-        '#FFFFFF',
       padding: 18,
       marginBottom: 26,
+      borderWidth: 1,
     },
 
     historyHeader: {
@@ -1035,10 +1199,6 @@ const styles =
     sectionTitle: {
       fontSize: 18,
       fontWeight: '700',
-    },
-
-    historyArrow: {
-      fontSize: 28,
     },
 
     recentHistoryList: {
@@ -1054,15 +1214,9 @@ const styles =
     },
 
     pausedBadge: {
-      backgroundColor:
-        '#F0DDD5',
       paddingHorizontal: 9,
       paddingVertical: 4,
       borderRadius: 12,
-    },
-
-    pausedBadgeText: {
-      fontSize: 12,
     },
 
     counterSection: {
@@ -1092,8 +1246,6 @@ const styles =
       width: 100,
       height: 100,
       borderRadius: 50,
-      backgroundColor:
-        '#D9A3A3',
       alignItems: 'center',
       justifyContent:
         'center',
@@ -1105,10 +1257,6 @@ const styles =
 
     newCountButton: {
       padding: 12,
-    },
-
-    newCountText: {
-      color: '#766E68',
     },
 
     actionRow: {
@@ -1123,21 +1271,13 @@ const styles =
       minWidth: 112,
       padding: 14,
       borderRadius: 22,
-      backgroundColor:
-        '#F2E7DC',
       alignItems: 'center',
-    },
-
-    markText: {
-      fontWeight: '600',
     },
 
     undoButton: {
       width: 54,
       height: 54,
       borderRadius: 27,
-      backgroundColor:
-        '#F2E7DC',
       alignItems: 'center',
       justifyContent:
         'center',
@@ -1147,16 +1287,11 @@ const styles =
       opacity: 0.4,
     },
 
-    undoText: {
-      fontSize: 28,
-    },
-
     memoArea: {
-      backgroundColor:
-        '#FFFFFF',
       borderRadius: 22,
       padding: 20,
       marginBottom: 30,
+      borderWidth: 1,
     },
 
     memoText: {
@@ -1169,13 +1304,11 @@ const styles =
         'center',
       paddingHorizontal: 24,
       backgroundColor:
-        'rgba(0,0,0,0.28)',
+        'rgba(0,0,0,0.35)',
     },
 
     historyModal: {
       maxHeight: '75%',
-      backgroundColor:
-        '#FFFDFC',
       borderRadius: 28,
       padding: 22,
     },
@@ -1192,10 +1325,6 @@ const styles =
       fontWeight: '700',
     },
 
-    closeText: {
-      fontSize: 30,
-    },
-
     fullHistoryRow: {
       minHeight: 70,
       flexDirection: 'row',
@@ -1203,8 +1332,6 @@ const styles =
         'space-between',
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor:
-        '#EEE6E0',
       paddingVertical: 12,
     },
 
@@ -1215,6 +1342,5 @@ const styles =
 
     fullHistoryType: {
       marginTop: 4,
-      color: '#9A918B',
     },
   });

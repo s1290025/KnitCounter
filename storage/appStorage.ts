@@ -1,10 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { ThemeName } from '../theme/themes';
+
 const STORAGE_KEY = '@knit_counter_app_data';
 
 export type Language = 'ja' | 'en';
 
-export type HistoryType = 'row' | 'stitch' | 'mark';
+export type HistoryType =
+  | 'row'
+  | 'stitch'
+  | 'mark';
 
 export type HistoryItem = {
   id: string;
@@ -23,8 +28,10 @@ export type Project = {
   id: string;
   name: string;
   memo: string;
+
   row: number;
   stitch: number;
+
   history: HistoryItem[];
   undoStack: CounterState[];
 };
@@ -32,7 +39,7 @@ export type Project = {
 export type AppData = {
   projects: Project[];
   language: Language;
-  theme: string;
+  theme: ThemeName;
 };
 
 const defaultData: AppData = {
@@ -43,20 +50,26 @@ const defaultData: AppData = {
 
 export async function loadAppData(): Promise<AppData> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(
+      STORAGE_KEY
+    );
 
     if (!raw) {
       return defaultData;
     }
 
-    const parsed = JSON.parse(raw);
+    const parsed =
+      JSON.parse(raw);
 
     return {
       ...defaultData,
       ...parsed,
     };
   } catch (error) {
-    console.error('loadAppData error:', error);
+    console.error(
+      'loadAppData error:',
+      error
+    );
 
     return defaultData;
   }
@@ -71,7 +84,11 @@ export async function saveAppData(
       JSON.stringify(data)
     );
   } catch (error) {
-    console.error('saveAppData error:', error);
+    console.error(
+      'saveAppData error:',
+      error
+    );
+
     throw error;
   }
 }
@@ -79,11 +96,13 @@ export async function saveAppData(
 export async function getProjectById(
   id: string
 ): Promise<Project | null> {
-  const data = await loadAppData();
+  const data =
+    await loadAppData();
 
   return (
     data.projects.find(
-      (project) => project.id === id
+      (project) =>
+        project.id === id
     ) ?? null
   );
 }
@@ -91,27 +110,20 @@ export async function getProjectById(
 export async function updateProject(
   updatedProject: Project
 ): Promise<void> {
-  const data = await loadAppData();
+  const data =
+    await loadAppData();
 
-  const projects = data.projects.map((project) =>
-    project.id === updatedProject.id
-      ? updatedProject
-      : project
-  );
+  const projects =
+    data.projects.map(
+      (project) =>
+        project.id ===
+        updatedProject.id
+          ? updatedProject
+          : project
+    );
 
   await saveAppData({
     ...data,
     projects,
-  });
-}
-
-export async function updateLanguage(
-  language: Language
-): Promise<void> {
-  const data = await loadAppData();
-
-  await saveAppData({
-    ...data,
-    language,
   });
 }

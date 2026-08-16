@@ -33,6 +33,12 @@ import {
   saveAppData,
 } from '../storage/appStorage';
 
+import {
+  ThemeName,
+  themeNames,
+  themes,
+} from '../theme/themes';
+
 export default function ProjectListScreen() {
   const [appData, setAppData] =
     useState<AppData | null>(null);
@@ -42,15 +48,21 @@ export default function ProjectListScreen() {
     setCreateModalVisible,
   ] = useState(false);
 
-  const [projectName, setProjectName] =
-    useState('');
-
-  const [memo, setMemo] = useState('');
-
   const [
     editModalVisible,
     setEditModalVisible,
   ] = useState(false);
+
+  const [
+    themeModalVisible,
+    setThemeModalVisible,
+  ] = useState(false);
+
+  const [projectName, setProjectName] =
+    useState('');
+
+  const [memo, setMemo] =
+    useState('');
 
   const [
     editingProject,
@@ -84,26 +96,58 @@ export default function ProjectListScreen() {
     }, [])
   );
 
+  if (!appData) {
+    return (
+      <SafeAreaView
+        style={styles.loadingSafeArea}
+      >
+        <View
+          style={styles.loadingContainer}
+        >
+          <ActivityIndicator
+            size="large"
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const language: Language =
-    appData?.language ?? 'ja';
+    appData.language;
 
   const isJapanese =
     language === 'ja';
 
-  const changeLanguage = async (
-    nextLanguage: Language
-  ) => {
-    if (!appData) return;
+  const currentTheme =
+    themes[appData.theme];
 
-    const nextData: AppData = {
-      ...appData,
-      language: nextLanguage,
+  const changeLanguage =
+    async (
+      nextLanguage: Language
+    ) => {
+      const nextData: AppData = {
+        ...appData,
+        language: nextLanguage,
+      };
+
+      setAppData(nextData);
+      await saveAppData(nextData);
     };
 
-    setAppData(nextData);
+  const changeTheme =
+    async (
+      nextTheme: ThemeName
+    ) => {
+      const nextData: AppData = {
+        ...appData,
+        theme: nextTheme,
+      };
 
-    await saveAppData(nextData);
-  };
+      setAppData(nextData);
+      await saveAppData(nextData);
+
+      setThemeModalVisible(false);
+    };
 
   const openCreateModal = () => {
     setProjectName('');
@@ -115,54 +159,62 @@ export default function ProjectListScreen() {
     Keyboard.dismiss();
 
     setCreateModalVisible(false);
+
     setProjectName('');
     setMemo('');
   };
 
-  const createProject = async () => {
-    if (!appData) return;
+  const createProject =
+    async () => {
+      const name =
+        projectName.trim();
 
-    const name =
-      projectName.trim();
+      if (!name) return;
 
-    if (!name) return;
+      if (
+        appData.projects.length >= 5
+      ) {
+        return;
+      }
 
-    if (
-      appData.projects.length >= 5
-    ) {
-      return;
-    }
+      const project: Project = {
+        id: `${Date.now()}-${Math.random()}`,
 
-    const project: Project = {
-      id: `${Date.now()}-${Math.random()}`,
-      name,
-      memo: memo.trim(),
-      row: 0,
-      stitch: 0,
-      history: [],
-      undoStack: [],
+        name,
+        memo: memo.trim(),
+
+        row: 0,
+        stitch: 0,
+
+        history: [],
+        undoStack: [],
+      };
+
+      const nextData: AppData = {
+        ...appData,
+
+        projects: [
+          ...appData.projects,
+          project,
+        ],
+      };
+
+      await saveAppData(
+        nextData
+      );
+
+      setAppData(nextData);
+
+      closeCreateModal();
     };
-
-    const newData: AppData = {
-      ...appData,
-      projects: [
-        ...appData.projects,
-        project,
-      ],
-    };
-
-    await saveAppData(newData);
-
-    setAppData(newData);
-
-    closeCreateModal();
-  };
 
   const openProject = (
     project: Project
   ) => {
     router.push({
-      pathname: '/counter/[id]',
+      pathname:
+        '/counter/[id]',
+
       params: {
         id: project.id,
       },
@@ -172,7 +224,9 @@ export default function ProjectListScreen() {
   const openEditModal = (
     project: Project
   ) => {
-    setEditingProject(project);
+    setEditingProject(
+      project
+    );
 
     setEditName(
       project.name
@@ -189,6 +243,7 @@ export default function ProjectListScreen() {
     Keyboard.dismiss();
 
     setEditModalVisible(false);
+
     setEditingProject(null);
 
     setEditName('');
@@ -197,10 +252,7 @@ export default function ProjectListScreen() {
 
   const saveEditedProject =
     async () => {
-      if (
-        !appData ||
-        !editingProject
-      ) {
+      if (!editingProject) {
         return;
       }
 
@@ -209,7 +261,7 @@ export default function ProjectListScreen() {
 
       if (!name) return;
 
-      const updatedProjects =
+      const projects =
         appData.projects.map(
           (project) =>
             project.id ===
@@ -223,26 +275,22 @@ export default function ProjectListScreen() {
               : project
         );
 
-      const newData: AppData = {
+      const nextData: AppData = {
         ...appData,
-        projects:
-          updatedProjects,
+        projects,
       };
 
       await saveAppData(
-        newData
+        nextData
       );
 
-      setAppData(newData);
+      setAppData(nextData);
 
       closeEditModal();
     };
 
   const deleteProject = () => {
-    if (
-      !appData ||
-      !editingProject
-    ) {
+    if (!editingProject) {
       return;
     }
 
@@ -257,45 +305,43 @@ export default function ProjectListScreen() {
 
       [
         {
-          text: isJapanese
-            ? 'キャンセル'
-            : 'Cancel',
+          text:
+            isJapanese
+              ? 'キャンセル'
+              : 'Cancel',
 
           style: 'cancel',
         },
 
         {
-          text: isJapanese
-            ? '削除'
-            : 'Delete',
+          text:
+            isJapanese
+              ? '削除'
+              : 'Delete',
 
           style:
             'destructive',
 
           onPress:
             async () => {
-              const
-                updatedProjects =
-                  appData.projects.filter(
-                    (project) =>
-                      project.id !==
-                      editingProject.id
-                  );
+              const projects =
+                appData.projects.filter(
+                  (project) =>
+                    project.id !==
+                    editingProject.id
+                );
 
-              const newData:
-                AppData = {
+              const nextData: AppData = {
                 ...appData,
-
-                projects:
-                  updatedProjects,
+                projects,
               };
 
               await saveAppData(
-                newData
+                nextData
               );
 
               setAppData(
-                newData
+                nextData
               );
 
               closeEditModal();
@@ -305,39 +351,49 @@ export default function ProjectListScreen() {
     );
   };
 
-  if (!appData) {
-    return (
-      <SafeAreaView
-        style={
-          styles.safeArea
-        }
-      >
-        <View
-          style={
-            styles.loadingContainer
-          }
-        >
-          <ActivityIndicator
-            size="large"
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const themeLabels:
+    Record<
+      ThemeName,
+      string
+    > = {
+    pink: 'Pink',
+    red: 'Red',
+    blue: 'Blue',
+    yellow: 'Yellow',
+    black: 'Black',
+  };
 
   return (
     <SafeAreaView
-      style={styles.safeArea}
+      style={[
+        styles.safeArea,
+        {
+          backgroundColor:
+            currentTheme.background,
+        },
+      ]}
     >
       <View
-        style={styles.container}
+        style={[
+          styles.container,
+          {
+            backgroundColor:
+              currentTheme.background,
+          },
+        ]}
       >
         {/* Header */}
         <View
           style={styles.header}
         >
           <Text
-            style={styles.title}
+            style={[
+              styles.title,
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
           >
             {isJapanese
               ? '作品一覧'
@@ -349,18 +405,24 @@ export default function ProjectListScreen() {
               styles.headerButtons
             }
           >
-            {/* Language switch */}
             <View
-              style={
-                styles.languageSwitch
-              }
+              style={[
+                styles.languageSwitch,
+
+                {
+                  backgroundColor:
+                    currentTheme.soft,
+                },
+              ]}
             >
               <TouchableOpacity
                 style={[
                   styles.languageOption,
 
-                  isJapanese &&
-                    styles.languageOptionActive,
+                  isJapanese && {
+                    backgroundColor:
+                      currentTheme.surface,
+                  },
                 ]}
                 onPress={() =>
                   changeLanguage(
@@ -369,12 +431,17 @@ export default function ProjectListScreen() {
                 }
               >
                 <Text
-                  style={[
-                    styles.languageOptionText,
+                  style={{
+                    color:
+                      isJapanese
+                        ? currentTheme.text
+                        : currentTheme.subText,
 
-                    isJapanese &&
-                      styles.languageOptionTextActive,
-                  ]}
+                    fontWeight:
+                      isJapanese
+                        ? '700'
+                        : '400',
+                  }}
                 >
                   日
                 </Text>
@@ -384,8 +451,10 @@ export default function ProjectListScreen() {
                 style={[
                   styles.languageOption,
 
-                  !isJapanese &&
-                    styles.languageOptionActive,
+                  !isJapanese && {
+                    backgroundColor:
+                      currentTheme.surface,
+                  },
                 ]}
                 onPress={() =>
                   changeLanguage(
@@ -394,12 +463,17 @@ export default function ProjectListScreen() {
                 }
               >
                 <Text
-                  style={[
-                    styles.languageOptionText,
+                  style={{
+                    color:
+                      !isJapanese
+                        ? currentTheme.text
+                        : currentTheme.subText,
 
-                    !isJapanese &&
-                      styles.languageOptionTextActive,
-                  ]}
+                    fontWeight:
+                      !isJapanese
+                        ? '700'
+                        : '400',
+                  }}
                 >
                   EN
                 </Text>
@@ -407,26 +481,37 @@ export default function ProjectListScreen() {
             </View>
 
             <TouchableOpacity
-              style={
-                styles.themeButton
+              style={[
+                styles.themeButton,
+
+                {
+                  backgroundColor:
+                    currentTheme.soft,
+                },
+              ]}
+              onPress={() =>
+                setThemeModalVisible(
+                  true
+                )
               }
             >
-              <Text
-                style={
-                  styles.themeText
-                }
-              >
-                ◐
-              </Text>
+              <View
+                style={[
+                  styles.themePreview,
+
+                  {
+                    backgroundColor:
+                      currentTheme.accent,
+                  },
+                ]}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Project list */}
+        {/* Projects */}
         <ScrollView
-          style={
-            styles.projectList
-          }
+          style={styles.projectList}
           contentContainerStyle={
             styles.projectListContent
           }
@@ -437,12 +522,18 @@ export default function ProjectListScreen() {
           {appData.projects.map(
             (project) => (
               <View
-                key={
-                  project.id
-                }
-                style={
-                  styles.projectCard
-                }
+                key={project.id}
+                style={[
+                  styles.projectCard,
+
+                  {
+                    backgroundColor:
+                      currentTheme.surface,
+
+                    borderColor:
+                      currentTheme.border,
+                  },
+                ]}
               >
                 <TouchableOpacity
                   style={
@@ -463,19 +554,27 @@ export default function ProjectListScreen() {
                     }
                   >
                     <Text
-                      style={
-                        styles.projectName
-                      }
+                      style={[
+                        styles.projectName,
+
+                        {
+                          color:
+                            currentTheme.text,
+                        },
+                      ]}
                     >
-                      {
-                        project.name
-                      }
+                      {project.name}
                     </Text>
 
                     <Text
-                      style={
-                        styles.projectCount
-                      }
+                      style={[
+                        styles.projectCount,
+
+                        {
+                          color:
+                            currentTheme.subText,
+                        },
+                      ]}
                     >
                       {isJapanese
                         ? `${project.row}段 / ${project.stitch}目`
@@ -485,9 +584,14 @@ export default function ProjectListScreen() {
                     {project.memo !==
                       '' && (
                       <Text
-                        style={
-                          styles.projectMemo
-                        }
+                        style={[
+                          styles.projectMemo,
+
+                          {
+                            color:
+                              currentTheme.subText,
+                          },
+                        ]}
                         numberOfLines={
                           1
                         }
@@ -511,9 +615,14 @@ export default function ProjectListScreen() {
                   }
                 >
                   <Text
-                    style={
-                      styles.editButtonText
-                    }
+                    style={[
+                      styles.editButtonText,
+
+                      {
+                        color:
+                          currentTheme.text,
+                      },
+                    ]}
                   >
                     ✎
                   </Text>
@@ -532,17 +641,27 @@ export default function ProjectListScreen() {
         {appData.projects.length <
           5 && (
           <TouchableOpacity
-            style={
-              styles.addButton
-            }
+            style={[
+              styles.addButton,
+
+              {
+                backgroundColor:
+                  currentTheme.accent,
+              },
+            ]}
             onPress={
               openCreateModal
             }
           >
             <Text
-              style={
-                styles.addButtonText
-              }
+              style={[
+                styles.addButtonText,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
             >
               ＋
             </Text>
@@ -583,17 +702,26 @@ export default function ProjectListScreen() {
               >
                 <TouchableWithoutFeedback>
                   <View
-                    style={
-                      styles.modalContent
-                    }
+                    style={[
+                      styles.modalContent,
+
+                      {
+                        backgroundColor:
+                          currentTheme.surface,
+                      },
+                    ]}
                   >
                     <ScrollView
                       keyboardShouldPersistTaps="handled"
                     >
                       <Text
-                        style={
-                          styles.modalTitle
-                        }
+                        style={[
+                          styles.modalTitle,
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? '新しい作品'
@@ -601,9 +729,13 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <Text
-                        style={
-                          styles.label
-                        }
+                        style={[
+                          styles.label,
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? '作品名'
@@ -611,9 +743,19 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <TextInput
-                        style={
-                          styles.input
-                        }
+                        style={[
+                          styles.input,
+                          {
+                            color:
+                              currentTheme.text,
+
+                            backgroundColor:
+                              currentTheme.surface,
+
+                            borderColor:
+                              currentTheme.border,
+                          },
+                        ]}
                         value={
                           projectName
                         }
@@ -625,13 +767,20 @@ export default function ProjectListScreen() {
                             ? '作品名'
                             : 'Project Name'
                         }
+                        placeholderTextColor={
+                          currentTheme.subText
+                        }
                         autoFocus
                       />
 
                       <Text
-                        style={
-                          styles.label
-                        }
+                        style={[
+                          styles.label,
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? 'メモ'
@@ -642,10 +791,19 @@ export default function ProjectListScreen() {
                         style={[
                           styles.input,
                           styles.memoInput,
+
+                          {
+                            color:
+                              currentTheme.text,
+
+                            backgroundColor:
+                              currentTheme.surface,
+
+                            borderColor:
+                              currentTheme.border,
+                          },
                         ]}
-                        value={
-                          memo
-                        }
+                        value={memo}
                         onChangeText={
                           setMemo
                         }
@@ -653,6 +811,9 @@ export default function ProjectListScreen() {
                           isJapanese
                             ? '任意'
                             : 'Optional'
+                        }
+                        placeholderTextColor={
+                          currentTheme.subText
                         }
                         multiline
                       />
@@ -663,17 +824,26 @@ export default function ProjectListScreen() {
                         }
                       >
                         <TouchableOpacity
-                          style={
-                            styles.cancelButton
-                          }
+                          style={[
+                            styles.cancelButton,
+
+                            {
+                              backgroundColor:
+                                currentTheme.soft,
+                            },
+                          ]}
                           onPress={
                             closeCreateModal
                           }
                         >
                           <Text
-                            style={
-                              styles.cancelButtonText
-                            }
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontWeight:
+                                '600',
+                            }}
                           >
                             {isJapanese
                               ? 'キャンセル'
@@ -685,9 +855,14 @@ export default function ProjectListScreen() {
                           style={[
                             styles.createButton,
 
+                            {
+                              backgroundColor:
+                                currentTheme.accent,
+                            },
+
                             projectName.trim() ===
                               '' &&
-                              styles.createButtonDisabled,
+                              styles.disabledButton,
                           ]}
                           onPress={
                             createProject
@@ -698,9 +873,13 @@ export default function ProjectListScreen() {
                           }
                         >
                           <Text
-                            style={
-                              styles.createButtonText
-                            }
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontWeight:
+                                '700',
+                            }}
                           >
                             {isJapanese
                               ? '作成'
@@ -750,17 +929,27 @@ export default function ProjectListScreen() {
               >
                 <TouchableWithoutFeedback>
                   <View
-                    style={
-                      styles.modalContent
-                    }
+                    style={[
+                      styles.modalContent,
+
+                      {
+                        backgroundColor:
+                          currentTheme.surface,
+                      },
+                    ]}
                   >
                     <ScrollView
                       keyboardShouldPersistTaps="handled"
                     >
                       <Text
-                        style={
-                          styles.modalTitle
-                        }
+                        style={[
+                          styles.modalTitle,
+
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? '作品を編集'
@@ -768,9 +957,14 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <Text
-                        style={
-                          styles.label
-                        }
+                        style={[
+                          styles.label,
+
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? '作品名'
@@ -778,9 +972,20 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <TextInput
-                        style={
-                          styles.input
-                        }
+                        style={[
+                          styles.input,
+
+                          {
+                            color:
+                              currentTheme.text,
+
+                            borderColor:
+                              currentTheme.border,
+
+                            backgroundColor:
+                              currentTheme.surface,
+                          },
+                        ]}
                         value={
                           editName
                         }
@@ -790,9 +995,14 @@ export default function ProjectListScreen() {
                       />
 
                       <Text
-                        style={
-                          styles.label
-                        }
+                        style={[
+                          styles.label,
+
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
                       >
                         {isJapanese
                           ? 'メモ'
@@ -803,6 +1013,17 @@ export default function ProjectListScreen() {
                         style={[
                           styles.input,
                           styles.memoInput,
+
+                          {
+                            color:
+                              currentTheme.text,
+
+                            borderColor:
+                              currentTheme.border,
+
+                            backgroundColor:
+                              currentTheme.surface,
+                          },
                         ]}
                         value={
                           editMemo
@@ -815,6 +1036,9 @@ export default function ProjectListScreen() {
                             ? '任意'
                             : 'Optional'
                         }
+                        placeholderTextColor={
+                          currentTheme.subText
+                        }
                         multiline
                       />
 
@@ -824,17 +1048,26 @@ export default function ProjectListScreen() {
                         }
                       >
                         <TouchableOpacity
-                          style={
-                            styles.cancelButton
-                          }
+                          style={[
+                            styles.cancelButton,
+
+                            {
+                              backgroundColor:
+                                currentTheme.soft,
+                            },
+                          ]}
                           onPress={
                             closeEditModal
                           }
                         >
                           <Text
-                            style={
-                              styles.cancelButtonText
-                            }
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontWeight:
+                                '600',
+                            }}
                           >
                             {isJapanese
                               ? 'キャンセル'
@@ -846,9 +1079,14 @@ export default function ProjectListScreen() {
                           style={[
                             styles.createButton,
 
+                            {
+                              backgroundColor:
+                                currentTheme.accent,
+                            },
+
                             editName.trim() ===
                               '' &&
-                              styles.createButtonDisabled,
+                              styles.disabledButton,
                           ]}
                           onPress={
                             saveEditedProject
@@ -859,9 +1097,13 @@ export default function ProjectListScreen() {
                           }
                         >
                           <Text
-                            style={
-                              styles.createButtonText
-                            }
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontWeight:
+                                '700',
+                            }}
                           >
                             {isJapanese
                               ? '保存'
@@ -871,17 +1113,26 @@ export default function ProjectListScreen() {
                       </View>
 
                       <TouchableOpacity
-                        style={
-                          styles.deleteButton
-                        }
+                        style={[
+                          styles.deleteButton,
+
+                          {
+                            backgroundColor:
+                              currentTheme.dangerBackground,
+                          },
+                        ]}
                         onPress={
                           deleteProject
                         }
                       >
                         <Text
-                          style={
-                            styles.deleteButtonText
-                          }
+                          style={{
+                            color:
+                              currentTheme.dangerText,
+
+                            fontWeight:
+                              '700',
+                          }}
                         >
                           {isJapanese
                             ? 'この作品を削除'
@@ -895,6 +1146,172 @@ export default function ProjectListScreen() {
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
         </Modal>
+
+        {/* Theme modal */}
+        <Modal
+          visible={
+            themeModalVisible
+          }
+          transparent
+          animationType="fade"
+          onRequestClose={() =>
+            setThemeModalVisible(
+              false
+            )
+          }
+        >
+          <View
+            style={
+              styles.modalOverlay
+            }
+          >
+            <View
+              style={[
+                styles.themeModal,
+
+                {
+                  backgroundColor:
+                    currentTheme.surface,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.themeModalTitle,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
+              >
+                {isJapanese
+                  ? 'テーマ'
+                  : 'Theme'}
+              </Text>
+
+              <View
+                style={
+                  styles.themeChoices
+                }
+              >
+                {themeNames.map(
+                  (themeName) => {
+                    const option =
+                      themes[
+                        themeName
+                      ];
+
+                    const selected =
+                      appData.theme ===
+                      themeName;
+
+                    return (
+                      <TouchableOpacity
+                        key={
+                          themeName
+                        }
+                        style={[
+                          styles.themeChoice,
+
+                          {
+                            borderColor:
+                              selected
+                                ? option.accent
+                                : currentTheme.border,
+
+                            backgroundColor:
+                              currentTheme.surface,
+                          },
+                        ]}
+                        onPress={() =>
+                          changeTheme(
+                            themeName
+                          )
+                        }
+                      >
+                        <View
+                          style={[
+                            styles.themeColorCircle,
+
+                            {
+                              backgroundColor:
+                                option.accent,
+                            },
+                          ]}
+                        />
+
+                        <Text
+                          style={[
+                            styles.themeChoiceText,
+
+                            {
+                              color:
+                                currentTheme.text,
+                            },
+                          ]}
+                        >
+                          {
+                            themeLabels[
+                              themeName
+                            ]
+                          }
+                        </Text>
+
+                        {selected && (
+                          <Text
+                            style={{
+                              color:
+                                currentTheme.text,
+
+                              fontSize:
+                                20,
+
+                              fontWeight:
+                                '700',
+                            }}
+                          >
+                            ✓
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  }
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.themeCloseButton,
+
+                  {
+                    backgroundColor:
+                      currentTheme.soft,
+                  },
+                ]}
+                onPress={() =>
+                  setThemeModalVisible(
+                    false
+                  )
+                }
+              >
+                <Text
+                  style={{
+                    color:
+                      currentTheme.text,
+
+                    fontWeight:
+                      '600',
+                  }}
+                >
+                  {isJapanese
+                    ? '閉じる'
+                    : 'Close'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -902,7 +1319,7 @@ export default function ProjectListScreen() {
 
 const styles =
   StyleSheet.create({
-    safeArea: {
+    loadingSafeArea: {
       flex: 1,
       backgroundColor:
         '#FFF9F3',
@@ -910,15 +1327,17 @@ const styles =
 
     loadingContainer: {
       flex: 1,
-      alignItems: 'center',
       justifyContent:
         'center',
+      alignItems: 'center',
+    },
+
+    safeArea: {
+      flex: 1,
     },
 
     container: {
       flex: 1,
-      backgroundColor:
-        '#FFF9F3',
       paddingHorizontal: 24,
     },
 
@@ -944,8 +1363,6 @@ const styles =
 
     languageSwitch: {
       flexDirection: 'row',
-      backgroundColor:
-        '#F2E7DC',
       borderRadius: 22,
       padding: 3,
     },
@@ -960,34 +1377,19 @@ const styles =
       borderRadius: 18,
     },
 
-    languageOptionActive: {
-      backgroundColor:
-        '#FFFFFF',
-    },
-
-    languageOptionText: {
-      fontSize: 14,
-      color: '#837A74',
-    },
-
-    languageOptionTextActive: {
-      color: '#111111',
-      fontWeight: '700',
-    },
-
     themeButton: {
       width: 48,
       height: 48,
       borderRadius: 24,
-      backgroundColor:
-        '#F2E7DC',
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
-    themeText: {
-      fontSize: 24,
+    themePreview: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
     },
 
     projectList: {
@@ -1002,11 +1404,10 @@ const styles =
       minHeight: 100,
       flexDirection: 'row',
       alignItems: 'stretch',
-      backgroundColor:
-        '#FFFFFF',
       borderRadius: 22,
       marginBottom: 14,
       overflow: 'hidden',
+      borderWidth: 1,
     },
 
     projectInfoButton: {
@@ -1031,13 +1432,11 @@ const styles =
     projectCount: {
       marginTop: 6,
       fontSize: 15,
-      color: '#77706B',
     },
 
     projectMemo: {
       marginTop: 5,
       fontSize: 14,
-      color: '#9A918B',
     },
 
     editButton: {
@@ -1062,8 +1461,6 @@ const styles =
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor:
-        '#D9A3A3',
       alignItems: 'center',
       justifyContent:
         'center',
@@ -1083,12 +1480,10 @@ const styles =
         'center',
       paddingHorizontal: 24,
       backgroundColor:
-        'rgba(0,0,0,0.25)',
+        'rgba(0,0,0,0.35)',
     },
 
     modalContent: {
-      backgroundColor:
-        '#FFFDFC',
       borderRadius: 28,
       padding: 24,
       maxHeight: '85%',
@@ -1109,13 +1504,9 @@ const styles =
     input: {
       minHeight: 56,
       borderWidth: 1.5,
-      borderColor:
-        '#DED4CC',
       borderRadius: 18,
       padding: 14,
       marginBottom: 22,
-      backgroundColor:
-        '#FFFFFF',
       fontSize: 17,
     },
 
@@ -1132,34 +1523,22 @@ const styles =
       flex: 1,
       minHeight: 54,
       borderRadius: 18,
-      backgroundColor:
-        '#F1EBE6',
       alignItems: 'center',
       justifyContent:
         'center',
-    },
-
-    cancelButtonText: {
-      fontWeight: '600',
     },
 
     createButton: {
       flex: 1,
       minHeight: 54,
       borderRadius: 18,
-      backgroundColor:
-        '#D9A3A3',
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
-    createButtonDisabled: {
+    disabledButton: {
       opacity: 0.4,
-    },
-
-    createButtonText: {
-      fontWeight: '700',
     },
 
     deleteButton: {
@@ -1169,12 +1548,51 @@ const styles =
       alignItems: 'center',
       justifyContent:
         'center',
-      backgroundColor:
-        '#FCE9E7',
     },
 
-    deleteButtonText: {
-      color: '#B64035',
+    themeModal: {
+      borderRadius: 28,
+      padding: 24,
+    },
+
+    themeModalTitle: {
+      fontSize: 26,
       fontWeight: '700',
+      marginBottom: 22,
+    },
+
+    themeChoices: {
+      gap: 10,
+    },
+
+    themeChoice: {
+      minHeight: 58,
+      borderWidth: 2,
+      borderRadius: 18,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+
+    themeColorCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      marginRight: 14,
+    },
+
+    themeChoiceText: {
+      flex: 1,
+      fontSize: 17,
+      fontWeight: '600',
+    },
+
+    themeCloseButton: {
+      minHeight: 52,
+      marginTop: 20,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent:
+        'center',
     },
   });
