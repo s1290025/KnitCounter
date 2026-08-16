@@ -1,6 +1,13 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
 import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+} from 'expo-router';
+
+import { useCallback, useMemo, useState } from 'react';
+
+import {
+  ActivityIndicator,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -10,166 +17,215 @@ import {
   View,
 } from 'react-native';
 
-type HistoryType = 'row' | 'stitch' | 'mark';
-
-type HistoryItem = {
-  id: number;
-  row: number;
-  stitch: number;
-  type: HistoryType;
-};
-
-type CounterState = {
-  row: number;
-  stitch: number;
-  history: HistoryItem[];
-};
+import {
+  HistoryItem,
+  HistoryType,
+  Project,
+  getProjectById,
+  updateProject,
+} from '../../storage/appStorage';
 
 export default function CounterScreen() {
-  const params = useLocalSearchParams<{
-    id: string;
-    name?: string;
-    memo?: string;
-    row?: string;
-    stitch?: string;
-  }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
-  const initialRow = Number(params.row ?? 0);
-  const initialStitch = Number(params.stitch ?? 0);
-
-  const [row, setRow] = useState(initialRow);
-  const [stitch, setStitch] = useState(initialStitch);
-
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [undoStack, setUndoStack] = useState<CounterState[]>([]);
-
+  const [project, setProject] = useState<Project | null>(null);
   const [historyModalVisible, setHistoryModalVisible] =
     useState(false);
 
-  const name = params.name ?? '';
-  const memo = params.memo ?? '';
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-  const saveCurrentStateForUndo = () => {
-    setUndoStack((currentStack) => [
-      ...currentStack,
-      {
-        row,
-        stitch,
-        history: [...history],
-      },
-    ]);
+      const load = async () => {
+        if (!id) return;
+
+        const savedProject = await getProjectById(id);
+
+        if (active) {
+          setProject(savedProject);
+        }
+      };
+
+      load();
+
+      return () => {
+        active = false;
+      };
+    }, [id])
+  );
+
+  const persistProject = async (nextProject: Project) => {
+    setProject(nextProject);
+    await updateProject(nextProject);
   };
 
-  const addHistoryItem = (type: HistoryType) => {
-    const newHistoryItem: HistoryItem = {
-      id: Date.now(),
-      row,
-      stitch,
-      type,
+  const saveUndo = (current: Project) => ({
+    row: current.row,
+    stitch: current.stitch,
+    history: [...current.history],
+  });
+
+  const addRow = async () => {
+    if (!project) return;
+
+    const previousState = saveUndo(project);
+
+    let history = [...project.history];
+
+    if (project.stitch > 0) {
+      const item: HistoryItem = {
+        id: `${Date.now()}-${Math.random()}`,
+        row: project.row,
+        stitch: project.stitch,
+        type: 'row',
+      };
+
+      history = [item, ...history];
+    }
+
+    const nextProject: Project = {
+      ...project,
+      row: project.row + 1,
+      stitch: 0,
+      history,
+      undoStack: [...project.undoStack, previousState],
     };
 
-    setHistory((currentHistory) => [
-      newHistoryItem,
-      ...currentHistory,
-    ]);
+    await persistProject(nextProject);
   };
 
-  // 段の＋
-  // 目が1以上なら現在状態を履歴へ追加
-  // 段を1増やし、目を0にする
-  const addRow = () => {
-    saveCurrentStateForUndo();
+  const addStitch = async () => {
+    if (!project) return;
 
-    if (stitch > 0) {
-      addHistoryItem('row');
+    const previousState = saveUndo(project);
+
+    await persistProject({
+      ...project,
+      stitch: project.stitch + 1,
+      undoStack: [...project.undoStack, previousState],
+    });
+  };
+
+  const startNewRow = async () => {
+    if (!project) return;
+
+    const previousState = saveUndo(project);
+
+    let history = [...project.history];
+
+    if (project.stitch > 0) {
+      history = [
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          row: project.row,
+          stitch: project.stitch,
+          type: 'row',
+        },
+        ...history,
+      ];
     }
 
-    setRow((current) => current + 1);
-    setStitch(0);
+    await persistProject({
+      ...project,
+      row: 0,
+      stitch: 0,
+      history,
+      undoStack: [...project.undoStack, previousState],
+    });
   };
 
-  // 目の＋
-  // 目だけ1増やす
-  const addStitch = () => {
-    saveCurrentStateForUndo();
+  const startNewStitch = async () => {
+    if (!project) return;
 
-    setStitch((current) => current + 1);
-  };
+    const previousState = saveUndo(project);
 
-  // 新しい段
-  // 目が1以上なら履歴へ追加
-  // 段と目を0にする
-  const startNewRow = () => {
-    saveCurrentStateForUndo();
+    let history = [...project.history];
 
-    if (stitch > 0) {
-      addHistoryItem('row');
+    if (project.stitch > 0) {
+      history = [
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          row: project.row,
+          stitch: project.stitch,
+          type: 'stitch',
+        },
+        ...history,
+      ];
     }
 
-    setRow(0);
-    setStitch(0);
+    await persistProject({
+      ...project,
+      stitch: 0,
+      history,
+      undoStack: [...project.undoStack, previousState],
+    });
   };
 
-  // 新しい目
-  // 目が1以上なら履歴へ追加
-  // 段はそのまま、目を0にする
-  const startNewStitch = () => {
-    saveCurrentStateForUndo();
+  const addMark = async () => {
+    if (!project) return;
 
-    if (stitch > 0) {
-      addHistoryItem('stitch');
-    }
+    const previousState = saveUndo(project);
 
-    setStitch(0);
+    const item: HistoryItem = {
+      id: `${Date.now()}-${Math.random()}`,
+      row: project.row,
+      stitch: project.stitch,
+      type: 'mark',
+    };
+
+    await persistProject({
+      ...project,
+      history: [item, ...project.history],
+      undoStack: [...project.undoStack, previousState],
+    });
   };
 
-  // 区切り
-  // 0目でも現在状態を履歴へ追加
-  // カウンター値は変更しない
-  const addMark = () => {
-    saveCurrentStateForUndo();
+  const undo = async () => {
+    if (!project) return;
+    if (project.undoStack.length === 0) return;
 
-    addHistoryItem('mark');
-  };
+    const previous =
+      project.undoStack[project.undoStack.length - 1];
 
-  // Undo
-  // 操作単位で直前の状態へ戻す
-  const undo = () => {
-    if (undoStack.length === 0) {
-      return;
-    }
-
-    const previousState = undoStack[undoStack.length - 1];
-
-    setRow(previousState.row);
-    setStitch(previousState.stitch);
-    setHistory(previousState.history);
-
-    setUndoStack((currentStack) =>
-      currentStack.slice(0, -1)
-    );
+    await persistProject({
+      ...project,
+      row: previous.row,
+      stitch: previous.stitch,
+      history: previous.history,
+      undoStack: project.undoStack.slice(0, -1),
+    });
   };
 
   const recentHistory = useMemo(() => {
-    return history.slice(0, 3);
-  }, [history]);
+    return project?.history.slice(0, 3) ?? [];
+  }, [project]);
 
   const getHistoryTypeLabel = (type: HistoryType) => {
-    if (type === 'mark') {
-      return '途中';
-    }
-
-    if (type === 'row') {
-      return '新しい段';
-    }
-
+    if (type === 'mark') return '途中';
+    if (type === 'row') return '新しい段';
     return '新しい目';
   };
+
+  if (!project) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+
+          <TouchableOpacity
+            style={styles.returnButton}
+            onPress={() => router.back()}
+          >
+            <Text>戻る</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* ヘッダー */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -182,15 +238,11 @@ export default function CounterScreen() {
             style={styles.projectName}
             numberOfLines={1}
           >
-            {name}
+            {project.name}
           </Text>
 
-          <TouchableOpacity
-            style={styles.languageButton}
-          >
-            <Text style={styles.languageText}>
-              日 / EN
-            </Text>
+          <TouchableOpacity style={styles.languageButton}>
+            <Text>日 / EN</Text>
           </TouchableOpacity>
         </View>
 
@@ -198,77 +250,56 @@ export default function CounterScreen() {
           style={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {/* 最近の履歴 */}
           <TouchableOpacity
             style={styles.historyArea}
-            activeOpacity={0.8}
-            onPress={() =>
-              setHistoryModalVisible(true)
-            }
+            onPress={() => setHistoryModalVisible(true)}
           >
             <View style={styles.historyHeader}>
               <Text style={styles.sectionTitle}>
                 最近の履歴
               </Text>
-
-              <Text style={styles.historyArrow}>
-                ›
-              </Text>
+              <Text style={styles.historyArrow}>›</Text>
             </View>
 
-            {recentHistory.length === 0 ? (
-              <View style={styles.emptyHistorySpace} />
-            ) : (
-              <View style={styles.recentHistoryList}>
-                {recentHistory.map((item) => (
-                  <View
-                    key={item.id}
-                    style={styles.historyRow}
-                  >
-                    <Text style={styles.historyCount}>
-                      {item.row}段　{item.stitch}目
-                    </Text>
+            <View style={styles.recentHistoryList}>
+              {recentHistory.map((item) => (
+                <View
+                  key={item.id}
+                  style={styles.historyRow}
+                >
+                  <Text>
+                    {item.row}段　{item.stitch}目
+                  </Text>
 
-                    {item.type === 'mark' && (
-                      <View style={styles.pausedBadge}>
-                        <Text
-                          style={styles.pausedBadgeText}
-                        >
-                          途中
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
+                  {item.type === 'mark' && (
+                    <View style={styles.pausedBadge}>
+                      <Text style={styles.pausedBadgeText}>
+                        途中
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
           </TouchableOpacity>
 
-          {/* 段 */}
           <View style={styles.counterSection}>
             <View style={styles.counterValueRow}>
               <Text style={styles.counterNumber}>
-                {row}
+                {project.row}
               </Text>
-
-              <Text style={styles.counterUnit}>
-                段
-              </Text>
+              <Text style={styles.counterUnit}>段</Text>
             </View>
 
             <TouchableOpacity
               style={styles.plusButton}
-              activeOpacity={0.7}
               onPress={addRow}
             >
-              <Text style={styles.plusText}>
-                ＋
-              </Text>
+              <Text style={styles.plusText}>＋</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.newCountButton}
-              activeOpacity={0.8}
               onPress={startNewRow}
             >
               <Text style={styles.newCountText}>
@@ -277,31 +308,23 @@ export default function CounterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 目 */}
           <View style={styles.counterSection}>
             <View style={styles.counterValueRow}>
               <Text style={styles.counterNumber}>
-                {stitch}
+                {project.stitch}
               </Text>
-
-              <Text style={styles.counterUnit}>
-                目
-              </Text>
+              <Text style={styles.counterUnit}>目</Text>
             </View>
 
             <TouchableOpacity
               style={styles.plusButton}
-              activeOpacity={0.7}
               onPress={addStitch}
             >
-              <Text style={styles.plusText}>
-                ＋
-              </Text>
+              <Text style={styles.plusText}>＋</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.newCountButton}
-              activeOpacity={0.8}
               onPress={startNewStitch}
             >
               <Text style={styles.newCountText}>
@@ -310,61 +333,35 @@ export default function CounterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 区切り / Undo */}
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={styles.markButton}
-              activeOpacity={0.8}
               onPress={addMark}
             >
-              <Text style={styles.markText}>
-                区切り
-              </Text>
+              <Text style={styles.markText}>区切り</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.undoButton,
-                undoStack.length === 0 &&
-                  styles.undoButtonDisabled,
+                project.undoStack.length === 0 &&
+                  styles.undoDisabled,
               ]}
-              activeOpacity={0.8}
               onPress={undo}
-              disabled={undoStack.length === 0}
+              disabled={project.undoStack.length === 0}
             >
-              <Text
-                style={[
-                  styles.undoText,
-                  undoStack.length === 0 &&
-                    styles.undoTextDisabled,
-                ]}
-              >
-                ↶
-              </Text>
+              <Text style={styles.undoText}>↶</Text>
             </TouchableOpacity>
           </View>
 
-          {/* メモ */}
           <View style={styles.memoArea}>
-            <Text style={styles.sectionTitle}>
-              メモ
+            <Text style={styles.sectionTitle}>メモ</Text>
+            <Text style={styles.memoText}>
+              {project.memo || 'メモなし'}
             </Text>
-
-            {memo ? (
-              <Text style={styles.memoText}>
-                {memo}
-              </Text>
-            ) : (
-              <Text style={styles.memoPlaceholder}>
-                メモなし
-              </Text>
-            )}
           </View>
-
-          <View style={styles.bottomSpace} />
         </ScrollView>
 
-        {/* 履歴モーダル */}
         <Modal
           visible={historyModalVisible}
           transparent
@@ -376,71 +373,43 @@ export default function CounterScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.historyModal}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  履歴
-                </Text>
+                <Text style={styles.modalTitle}>履歴</Text>
 
                 <TouchableOpacity
-                  style={styles.closeButton}
                   onPress={() =>
                     setHistoryModalVisible(false)
                   }
                 >
-                  <Text style={styles.closeButtonText}>
-                    ×
-                  </Text>
+                  <Text style={styles.closeText}>×</Text>
                 </TouchableOpacity>
               </View>
 
-              {history.length === 0 ? (
-                <View style={styles.modalEmptyArea}>
-                  <Text style={styles.modalEmptyText}>
-                    履歴はまだありません
-                  </Text>
-                </View>
-              ) : (
-                <ScrollView
-                  style={styles.fullHistoryList}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {history.map((item) => (
-                    <View
-                      key={item.id}
-                      style={styles.fullHistoryRow}
-                    >
-                      <View>
-                        <Text
-                          style={styles.fullHistoryCount}
-                        >
-                          {item.row}段　{item.stitch}目
-                        </Text>
+              <ScrollView>
+                {project.history.map((item) => (
+                  <View
+                    key={item.id}
+                    style={styles.fullHistoryRow}
+                  >
+                    <View>
+                      <Text style={styles.fullHistoryCount}>
+                        {item.row}段　{item.stitch}目
+                      </Text>
 
-                        <Text
-                          style={styles.fullHistoryType}
-                        >
-                          {getHistoryTypeLabel(
-                            item.type
-                          )}
+                      <Text style={styles.fullHistoryType}>
+                        {getHistoryTypeLabel(item.type)}
+                      </Text>
+                    </View>
+
+                    {item.type === 'mark' && (
+                      <View style={styles.pausedBadge}>
+                        <Text style={styles.pausedBadgeText}>
+                          途中
                         </Text>
                       </View>
-
-                      {item.type === 'mark' && (
-                        <View
-                          style={styles.pausedBadge}
-                        >
-                          <Text
-                            style={
-                              styles.pausedBadgeText
-                            }
-                          >
-                            途中
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </ScrollView>
-              )}
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -460,31 +429,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF9F3',
   },
 
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  returnButton: {
+    marginTop: 20,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    padding: 20,
   },
 
   backButton: {
     width: 44,
-    height: 44,
-    justifyContent: 'center',
   },
 
   backText: {
     fontSize: 40,
-    lineHeight: 42,
-    fontWeight: '300',
   },
 
   projectName: {
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
-    marginHorizontal: 8,
   },
 
   languageButton: {
@@ -492,10 +464,6 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 20,
     backgroundColor: '#F2E7DC',
-  },
-
-  languageText: {
-    fontSize: 15,
   },
 
   content: {
@@ -508,19 +476,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
     padding: 18,
-    marginTop: 12,
     marginBottom: 26,
   },
 
   historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  historyArrow: {
-    fontSize: 28,
-    color: '#9A918B',
   },
 
   sectionTitle: {
@@ -528,8 +489,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  emptyHistorySpace: {
-    height: 70,
+  historyArrow: {
+    fontSize: 28,
   },
 
   recentHistoryList: {
@@ -539,26 +500,18 @@ const styles = StyleSheet.create({
 
   historyRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
   },
 
-  historyCount: {
-    fontSize: 15,
-    color: '#5F5852',
-  },
-
   pausedBadge: {
+    backgroundColor: '#F0DDD5',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F0DDD5',
   },
 
   pausedBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#765A50',
   },
 
   counterSection: {
@@ -569,14 +522,12 @@ const styles = StyleSheet.create({
   counterValueRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'center',
     marginBottom: 14,
   },
 
   counterNumber: {
     fontSize: 62,
     fontWeight: '700',
-    lineHeight: 68,
   },
 
   counterUnit: {
@@ -596,41 +547,32 @@ const styles = StyleSheet.create({
 
   plusText: {
     fontSize: 58,
-    lineHeight: 62,
-    fontWeight: '300',
   },
 
   newCountButton: {
-    marginTop: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 9,
-    borderRadius: 18,
+    padding: 12,
   },
 
   newCountText: {
-    fontSize: 15,
     color: '#766E68',
   },
 
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
     gap: 18,
     marginBottom: 30,
   },
 
   markButton: {
     minWidth: 112,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    padding: 14,
     borderRadius: 22,
     backgroundColor: '#F2E7DC',
     alignItems: 'center',
   },
 
   markText: {
-    fontSize: 16,
     fontWeight: '600',
   },
 
@@ -643,52 +585,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  undoButtonDisabled: {
+  undoDisabled: {
     opacity: 0.4,
   },
 
   undoText: {
     fontSize: 28,
-    color: '#333333',
-  },
-
-  undoTextDisabled: {
-    color: '#AAA19A',
   },
 
   memoArea: {
-    borderRadius: 22,
     backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 30,
   },
 
   memoText: {
     marginTop: 12,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-
-  memoPlaceholder: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#AAA19A',
-  },
-
-  bottomSpace: {
-    height: 30,
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.28)',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 60,
+    backgroundColor: 'rgba(0,0,0,0.28)',
   },
 
   historyModal: {
-    width: '100%',
     maxHeight: '75%',
     backgroundColor: '#FFFDFC',
     borderRadius: 28,
@@ -697,7 +620,6 @@ const styles = StyleSheet.create({
 
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
@@ -707,38 +629,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  closeButton: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  closeButtonText: {
+  closeText: {
     fontSize: 30,
-    fontWeight: '300',
-  },
-
-  modalEmptyArea: {
-    minHeight: 150,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  modalEmptyText: {
-    fontSize: 15,
-    color: '#AAA19A',
-  },
-
-  fullHistoryList: {
-    maxHeight: 480,
   },
 
   fullHistoryRow: {
     minHeight: 70,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#EEE6E0',
     paddingVertical: 12,
@@ -750,8 +649,7 @@ const styles = StyleSheet.create({
   },
 
   fullHistoryType: {
-    fontSize: 13,
-    color: '#9A918B',
     marginTop: 4,
+    color: '#9A918B',
   },
 });

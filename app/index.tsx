@@ -1,34 +1,55 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
-type Project = {
-  id: number;
-  name: string;
-  memo: string;
-  row: number;
-  stitch: number;
-};
+import {
+  AppData,
+  loadAppData,
+  Project,
+  saveAppData,
+} from '../storage/appStorage';
 
 export default function ProjectListScreen() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [appData, setAppData] = useState<AppData | null>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [memo, setMemo] = useState('');
+
+  // この画面に戻るたびに最新データを読む
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const load = async () => {
+        const data = await loadAppData();
+
+        if (active) {
+          setAppData(data);
+        }
+      };
+
+      load();
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const openCreateModal = () => {
     setProjectName('');
@@ -43,25 +64,31 @@ export default function ProjectListScreen() {
     setMemo('');
   };
 
-  const createProject = () => {
-    const trimmedName = projectName.trim();
+  const createProject = async () => {
+    if (!appData) return;
 
-    if (!trimmedName) {
-      return;
-    }
+    const name = projectName.trim();
 
-    const newProject: Project = {
-      id: Date.now(),
-      name: trimmedName,
+    if (!name) return;
+    if (appData.projects.length >= 5) return;
+
+    const project: Project = {
+      id: `${Date.now()}-${Math.random()}`,
+      name,
       memo: memo.trim(),
       row: 0,
       stitch: 0,
+      history: [],
+      undoStack: [],
     };
 
-    setProjects((currentProjects) => [
-      ...currentProjects,
-      newProject,
-    ]);
+    const newData: AppData = {
+      ...appData,
+      projects: [...appData.projects, project],
+    };
+
+    await saveAppData(newData);
+    setAppData(newData);
 
     closeCreateModal();
   };
@@ -70,46 +97,44 @@ export default function ProjectListScreen() {
     router.push({
       pathname: '/counter/[id]',
       params: {
-        id: String(project.id),
-        name: project.name,
-        memo: project.memo,
-        row: String(project.row),
-        stitch: String(project.stitch),
+        id: project.id,
       },
     });
   };
 
+  if (!appData) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* ヘッダー */}
         <View style={styles.header}>
           <Text style={styles.title}>作品一覧</Text>
 
           <View style={styles.headerButtons}>
-            <TouchableOpacity
-              style={styles.languageButton}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.languageButton}>
               <Text style={styles.languageText}>日 / EN</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.themeButton}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.themeButton}>
               <Text style={styles.themeText}>◐</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 作品一覧 */}
         <ScrollView
           style={styles.projectList}
           contentContainerStyle={styles.projectListContent}
           showsVerticalScrollIndicator={false}
         >
-          {projects.map((project) => (
+          {appData.projects.map((project) => (
             <TouchableOpacity
               key={project.id}
               style={styles.projectCard}
@@ -137,7 +162,6 @@ export default function ProjectListScreen() {
 
               <TouchableOpacity
                 style={styles.editButton}
-                activeOpacity={0.8}
                 onPress={(event) => {
                   event.stopPropagation();
                 }}
@@ -150,18 +174,15 @@ export default function ProjectListScreen() {
           <View style={styles.bottomSpace} />
         </ScrollView>
 
-        {/* 作品追加 */}
-        {projects.length < 5 && (
+        {appData.projects.length < 5 && (
           <TouchableOpacity
             style={styles.addButton}
-            activeOpacity={0.8}
             onPress={openCreateModal}
           >
             <Text style={styles.addButtonText}>＋</Text>
           </TouchableOpacity>
         )}
 
-        {/* 新しい作品モーダル */}
         <Modal
           visible={modalVisible}
           transparent
@@ -174,16 +195,11 @@ export default function ProjectListScreen() {
           >
             <TouchableWithoutFeedback
               onPress={Keyboard.dismiss}
-              accessible={false}
             >
               <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback>
                   <View style={styles.modalContent}>
-                    <ScrollView
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={false}
-                      bounces={false}
-                    >
+                    <ScrollView keyboardShouldPersistTaps="handled">
                       <Text style={styles.modalTitle}>
                         新しい作品
                       </Text>
@@ -197,8 +213,6 @@ export default function ProjectListScreen() {
                         value={projectName}
                         onChangeText={setProjectName}
                         placeholder="作品名"
-                        placeholderTextColor="#B8B0AA"
-                        returnKeyType="next"
                         autoFocus
                       />
 
@@ -211,15 +225,12 @@ export default function ProjectListScreen() {
                         value={memo}
                         onChangeText={setMemo}
                         placeholder="任意"
-                        placeholderTextColor="#D0C9C3"
                         multiline
-                        textAlignVertical="top"
                       />
 
                       <View style={styles.modalButtons}>
                         <TouchableOpacity
                           style={styles.cancelButton}
-                          activeOpacity={0.8}
                           onPress={closeCreateModal}
                         >
                           <Text style={styles.cancelButtonText}>
@@ -233,7 +244,6 @@ export default function ProjectListScreen() {
                             projectName.trim() === '' &&
                               styles.createButtonDisabled,
                           ]}
-                          activeOpacity={0.8}
                           onPress={createProject}
                           disabled={projectName.trim() === ''}
                         >
@@ -260,6 +270,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF9F3',
   },
 
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#FFF9F3',
@@ -277,12 +293,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111111',
   },
 
   headerButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
 
@@ -295,7 +309,6 @@ const styles = StyleSheet.create({
 
   languageText: {
     fontSize: 16,
-    color: '#111111',
   },
 
   themeButton: {
@@ -303,13 +316,12 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: '#F2E7DC',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   themeText: {
     fontSize: 24,
-    color: '#111111',
   },
 
   projectList: {
@@ -324,45 +336,31 @@ const styles = StyleSheet.create({
     minHeight: 100,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: 20,
     marginBottom: 14,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    elevation: 2,
   },
 
   projectInfo: {
     flex: 1,
-    paddingRight: 12,
   },
 
   projectName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111111',
   },
 
   projectCount: {
+    marginTop: 6,
     fontSize: 15,
     color: '#77706B',
-    marginTop: 6,
   },
 
   projectMemo: {
+    marginTop: 5,
     fontSize: 14,
     color: '#9A918B',
-    marginTop: 5,
   },
 
   editButton: {
@@ -376,7 +374,6 @@ const styles = StyleSheet.create({
 
   editButtonText: {
     fontSize: 22,
-    color: '#333333',
   },
 
   bottomSpace: {
@@ -393,23 +390,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9A3A3',
     alignItems: 'center',
     justifyContent: 'center',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
-    elevation: 4,
   },
 
   addButtonText: {
     fontSize: 42,
-    lineHeight: 46,
-    fontWeight: '300',
-    color: '#111111',
   },
 
   modalKeyboardView: {
@@ -418,47 +402,39 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
 
   modalContent: {
-    width: '100%',
-    maxHeight: '85%',
     backgroundColor: '#FFFDFC',
     borderRadius: 28,
-    paddingHorizontal: 24,
-    paddingVertical: 28,
+    padding: 24,
+    maxHeight: '85%',
   },
 
   modalTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#111111',
     marginBottom: 28,
   },
 
   label: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#111111',
     marginBottom: 8,
   },
 
   input: {
-    width: '100%',
     minHeight: 56,
     borderWidth: 1.5,
     borderColor: '#DED4CC',
     borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 17,
-    color: '#111111',
-    backgroundColor: '#FFFFFF',
+    padding: 14,
     marginBottom: 22,
+    backgroundColor: '#FFFFFF',
+    fontSize: 17,
   },
 
   memoInput: {
@@ -468,7 +444,6 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 4,
   },
 
   cancelButton: {
@@ -481,9 +456,7 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#4E4844',
   },
 
   createButton: {
@@ -500,8 +473,6 @@ const styles = StyleSheet.create({
   },
 
   createButtonText: {
-    fontSize: 16,
     fontWeight: '700',
-    color: '#111111',
   },
 });
