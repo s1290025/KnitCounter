@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -26,11 +27,19 @@ import {
 export default function ProjectListScreen() {
   const [appData, setAppData] = useState<AppData | null>(null);
 
-  const [modalVisible, setModalVisible] = useState(false);
+  // 新規作成モーダル
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [memo, setMemo] = useState('');
 
-  // この画面に戻るたびに最新データを読む
+  // 編集モーダル
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingProject, setEditingProject] =
+    useState<Project | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editMemo, setEditMemo] = useState('');
+
+  // 画面を開くたびに最新データを読み込む
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -54,12 +63,12 @@ export default function ProjectListScreen() {
   const openCreateModal = () => {
     setProjectName('');
     setMemo('');
-    setModalVisible(true);
+    setCreateModalVisible(true);
   };
 
   const closeCreateModal = () => {
     Keyboard.dismiss();
-    setModalVisible(false);
+    setCreateModalVisible(false);
     setProjectName('');
     setMemo('');
   };
@@ -102,6 +111,85 @@ export default function ProjectListScreen() {
     });
   };
 
+  const openEditModal = (project: Project) => {
+    setEditingProject(project);
+    setEditName(project.name);
+    setEditMemo(project.memo);
+    setEditModalVisible(true);
+  };
+
+  const closeEditModal = () => {
+    Keyboard.dismiss();
+
+    setEditModalVisible(false);
+    setEditingProject(null);
+    setEditName('');
+    setEditMemo('');
+  };
+
+  const saveEditedProject = async () => {
+    if (!appData || !editingProject) return;
+
+    const name = editName.trim();
+
+    if (!name) return;
+
+    const updatedProjects = appData.projects.map((project) =>
+      project.id === editingProject.id
+        ? {
+            ...project,
+            name,
+            memo: editMemo.trim(),
+          }
+        : project
+    );
+
+    const newData: AppData = {
+      ...appData,
+      projects: updatedProjects,
+    };
+
+    await saveAppData(newData);
+    setAppData(newData);
+
+    closeEditModal();
+  };
+
+  const deleteProject = () => {
+    if (!appData || !editingProject) return;
+
+    Alert.alert(
+      '作品を削除',
+      `「${editingProject.name}」を削除しますか？\n履歴もすべて削除されます。`,
+      [
+        {
+          text: 'キャンセル',
+          style: 'cancel',
+        },
+        {
+          text: '削除',
+          style: 'destructive',
+
+          onPress: async () => {
+            const updatedProjects = appData.projects.filter(
+              (project) => project.id !== editingProject.id
+            );
+
+            const newData: AppData = {
+              ...appData,
+              projects: updatedProjects,
+            };
+
+            await saveAppData(newData);
+            setAppData(newData);
+
+            closeEditModal();
+          },
+        },
+      ]
+    );
+  };
+
   if (!appData) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -115,91 +203,123 @@ export default function ProjectListScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* ヘッダー */}
         <View style={styles.header}>
           <Text style={styles.title}>作品一覧</Text>
 
           <View style={styles.headerButtons}>
-            <TouchableOpacity style={styles.languageButton}>
-              <Text style={styles.languageText}>日 / EN</Text>
+            <TouchableOpacity
+              style={styles.languageButton}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageText}>
+                日 / EN
+              </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.themeButton}>
-              <Text style={styles.themeText}>◐</Text>
+            <TouchableOpacity
+              style={styles.themeButton}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.themeText}>
+                ◐
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* 作品一覧 */}
         <ScrollView
           style={styles.projectList}
           contentContainerStyle={styles.projectListContent}
           showsVerticalScrollIndicator={false}
         >
           {appData.projects.map((project) => (
-            <TouchableOpacity
+            <View
               key={project.id}
               style={styles.projectCard}
-              activeOpacity={0.8}
-              onPress={() => openProject(project)}
             >
-              <View style={styles.projectInfo}>
-                <Text style={styles.projectName}>
-                  {project.name}
-                </Text>
-
-                <Text style={styles.projectCount}>
-                  {project.row}段 / {project.stitch}目
-                </Text>
-
-                {project.memo !== '' && (
-                  <Text
-                    style={styles.projectMemo}
-                    numberOfLines={1}
-                  >
-                    {project.memo}
+              {/* 左側：カウンター画面を開く */}
+              <TouchableOpacity
+                style={styles.projectInfoButton}
+                activeOpacity={0.8}
+                onPress={() => openProject(project)}
+              >
+                <View style={styles.projectInfo}>
+                  <Text style={styles.projectName}>
+                    {project.name}
                   </Text>
-                )}
-              </View>
 
+                  <Text style={styles.projectCount}>
+                    {project.row}段 / {project.stitch}目
+                  </Text>
+
+                  {project.memo !== '' && (
+                    <Text
+                      style={styles.projectMemo}
+                      numberOfLines={1}
+                    >
+                      {project.memo}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* 右側：編集 */}
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={(event) => {
-                  event.stopPropagation();
-                }}
+                activeOpacity={0.8}
+                onPress={() => openEditModal(project)}
               >
-                <Text style={styles.editButtonText}>✎</Text>
+                <Text style={styles.editButtonText}>
+                  ✎
+                </Text>
               </TouchableOpacity>
-            </TouchableOpacity>
+            </View>
           ))}
 
           <View style={styles.bottomSpace} />
         </ScrollView>
 
+        {/* 作品追加 */}
         {appData.projects.length < 5 && (
           <TouchableOpacity
             style={styles.addButton}
+            activeOpacity={0.8}
             onPress={openCreateModal}
           >
-            <Text style={styles.addButtonText}>＋</Text>
+            <Text style={styles.addButtonText}>
+              ＋
+            </Text>
           </TouchableOpacity>
         )}
 
+        {/* 新規作成モーダル */}
         <Modal
-          visible={modalVisible}
+          visible={createModalVisible}
           transparent
           animationType="fade"
           onRequestClose={closeCreateModal}
         >
           <KeyboardAvoidingView
             style={styles.modalKeyboardView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={
+              Platform.OS === 'ios'
+                ? 'padding'
+                : 'height'
+            }
           >
             <TouchableWithoutFeedback
               onPress={Keyboard.dismiss}
+              accessible={false}
             >
               <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback>
                   <View style={styles.modalContent}>
-                    <ScrollView keyboardShouldPersistTaps="handled">
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                    >
                       <Text style={styles.modalTitle}>
                         新しい作品
                       </Text>
@@ -221,11 +341,15 @@ export default function ProjectListScreen() {
                       </Text>
 
                       <TextInput
-                        style={[styles.input, styles.memoInput]}
+                        style={[
+                          styles.input,
+                          styles.memoInput,
+                        ]}
                         value={memo}
                         onChangeText={setMemo}
                         placeholder="任意"
                         multiline
+                        textAlignVertical="top"
                       />
 
                       <View style={styles.modalButtons}>
@@ -252,6 +376,106 @@ export default function ProjectListScreen() {
                           </Text>
                         </TouchableOpacity>
                       </View>
+                    </ScrollView>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* 編集モーダル */}
+        <Modal
+          visible={editModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeEditModal}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalKeyboardView}
+            behavior={
+              Platform.OS === 'ios'
+                ? 'padding'
+                : 'height'
+            }
+          >
+            <TouchableWithoutFeedback
+              onPress={Keyboard.dismiss}
+              accessible={false}
+            >
+              <View style={styles.modalOverlay}>
+                <TouchableWithoutFeedback>
+                  <View style={styles.modalContent}>
+                    <ScrollView
+                      keyboardShouldPersistTaps="handled"
+                      showsVerticalScrollIndicator={false}
+                    >
+                      <Text style={styles.modalTitle}>
+                        作品を編集
+                      </Text>
+
+                      <Text style={styles.label}>
+                        作品名
+                      </Text>
+
+                      <TextInput
+                        style={styles.input}
+                        value={editName}
+                        onChangeText={setEditName}
+                        placeholder="作品名"
+                        autoFocus
+                      />
+
+                      <Text style={styles.label}>
+                        メモ
+                      </Text>
+
+                      <TextInput
+                        style={[
+                          styles.input,
+                          styles.memoInput,
+                        ]}
+                        value={editMemo}
+                        onChangeText={setEditMemo}
+                        placeholder="任意"
+                        multiline
+                        textAlignVertical="top"
+                      />
+
+                      <View style={styles.modalButtons}>
+                        <TouchableOpacity
+                          style={styles.cancelButton}
+                          onPress={closeEditModal}
+                        >
+                          <Text style={styles.cancelButtonText}>
+                            キャンセル
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.createButton,
+                            editName.trim() === '' &&
+                              styles.createButtonDisabled,
+                          ]}
+                          onPress={saveEditedProject}
+                          disabled={editName.trim() === ''}
+                        >
+                          <Text style={styles.createButtonText}>
+                            保存
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        activeOpacity={0.8}
+                        onPress={deleteProject}
+                      >
+                        <Text style={styles.deleteButtonText}>
+                          この作品を削除
+                        </Text>
+                      </TouchableOpacity>
                     </ScrollView>
                   </View>
                 </TouchableWithoutFeedback>
@@ -297,6 +521,7 @@ const styles = StyleSheet.create({
 
   headerButtons: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
 
@@ -335,15 +560,33 @@ const styles = StyleSheet.create({
   projectCard: {
     minHeight: 100,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 20,
     marginBottom: 14,
+    overflow: 'hidden',
+
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+
+    elevation: 2,
+  },
+
+  projectInfoButton: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingLeft: 20,
+    paddingVertical: 16,
   },
 
   projectInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
 
   projectName: {
@@ -364,16 +607,14 @@ const styles = StyleSheet.create({
   },
 
   editButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F5ECE5',
+    width: 68,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   editButtonText: {
-    fontSize: 22,
+    fontSize: 24,
+    color: '#333333',
   },
 
   bottomSpace: {
@@ -473,6 +714,20 @@ const styles = StyleSheet.create({
   },
 
   createButtonText: {
+    fontWeight: '700',
+  },
+
+  deleteButton: {
+    marginTop: 28,
+    minHeight: 50,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FCE9E7',
+  },
+
+  deleteButtonText: {
+    color: '#B64035',
     fontWeight: '700',
   },
 });
