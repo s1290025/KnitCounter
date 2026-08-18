@@ -7,6 +7,7 @@ import {
 import {
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -46,6 +47,11 @@ export default function CounterScreen() {
 
   const isLandscape =
     width > height;
+
+  const recentHistoryScrollRef =
+    useRef<ScrollView | null>(
+      null
+    );
 
   const [
     project,
@@ -349,10 +355,13 @@ export default function CounterScreen() {
 
       await persistProject({
         ...project,
+
         row:
           previous.row,
+
         stitch:
           previous.stitch,
+
         history:
           previous.history,
 
@@ -364,16 +373,14 @@ export default function CounterScreen() {
       });
     };
 
-  const recentHistory =
+  // 保存順は「新しい→古い」のまま。
+  // 表示時だけ反転して「古い→新しい」にする。
+  const displayHistory =
     useMemo(() => {
-      return project.history.slice(
-        0,
-        isLandscape ? 2 : 3
-      );
-    }, [
-      project.history,
-      isLandscape,
-    ]);
+      return [
+        ...project.history,
+      ].reverse();
+    }, [project.history]);
 
   const getHistoryTypeLabel =
     (
@@ -400,11 +407,89 @@ export default function CounterScreen() {
         : 'New Stitch';
     };
 
+  const renderHistoryItem = (
+    item: HistoryItem,
+    index: number
+  ) => {
+    const isNewest =
+      index ===
+      displayHistory.length - 1;
+
+    return (
+      <View
+        key={item.id}
+        style={
+          styles.historyRow
+        }
+      >
+        <View
+          style={
+            styles.historyLeft
+          }
+        >
+          <Text
+            style={[
+              styles.historyCountText,
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {isJapanese
+              ? `${item.row}段　${item.stitch}目`
+              : `${item.row} Row  ${item.stitch} Stitches`}
+          </Text>
+
+          {item.type ===
+            'mark' && (
+            <View
+              style={[
+                styles.pausedBadge,
+                {
+                  backgroundColor:
+                    currentTheme.soft,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color:
+                    currentTheme.text,
+                  fontSize: 11,
+                }}
+              >
+                {isJapanese
+                  ? '途中'
+                  : 'Paused'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {isNewest && (
+          <Text
+            style={[
+              styles.newLabel,
+              {
+                color:
+                  currentTheme.accent,
+              },
+            ]}
+          >
+            NEW
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   const renderHistory =
     (
       landscape = false
     ) => (
-      <TouchableOpacity
+      <View
         style={[
           styles.historyArea,
 
@@ -414,25 +499,29 @@ export default function CounterScreen() {
           {
             backgroundColor:
               currentTheme.surface,
-
             borderColor:
               currentTheme.border,
           },
         ]}
-        onPress={() =>
-          setHistoryModalVisible(
-            true
-          )
-        }
       >
-        <View
+        <TouchableOpacity
           style={
             styles.historyHeader
+          }
+          activeOpacity={0.7}
+          onPress={() =>
+            setHistoryModalVisible(
+              true
+            )
           }
         >
           <Text
             style={[
               styles.sectionTitle,
+
+              landscape &&
+                styles.sectionTitleLandscape,
+
               {
                 color:
                   currentTheme.text,
@@ -445,83 +534,63 @@ export default function CounterScreen() {
           </Text>
 
           <Text
-            style={{
-              color:
-                currentTheme.subText,
-              fontSize: 28,
-            }}
+            style={[
+              styles.historyArrow,
+              {
+                color:
+                  currentTheme.subText,
+              },
+            ]}
           >
             ›
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <View
-          style={
-            styles.recentHistoryList
-          }
-        >
-          {recentHistory.map(
-            (item) => (
-              <View
-                key={item.id}
-                style={
-                  styles.historyRow
-                }
-              >
-                <Text
-                  style={{
-                    color:
-                      currentTheme.text,
-                  }}
-                >
-                  {isJapanese
-                    ? `${item.row}段　${item.stitch}目`
-                    : `${item.row} Row　${item.stitch} Stitches`}
-                </Text>
-
-                {item.type ===
-                  'mark' && (
-                  <View
-                    style={[
-                      styles.pausedBadge,
-                      {
-                        backgroundColor:
-                          currentTheme.soft,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          currentTheme.text,
-                        fontSize: 12,
-                      }}
-                    >
-                      {isJapanese
-                        ? '途中'
-                        : 'Paused'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )
-          )}
-
-          {recentHistory.length ===
-            0 && (
-            <Text
-              style={{
+        {displayHistory.length ===
+        0 ? (
+          <Text
+            style={[
+              styles.emptyHistoryText,
+              {
                 color:
                   currentTheme.subText,
-              }}
-            >
-              {isJapanese
-                ? '履歴はまだありません'
-                : 'No history yet'}
-            </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+              },
+            ]}
+          >
+            {isJapanese
+              ? '履歴はまだありません'
+              : 'No history yet'}
+          </Text>
+        ) : (
+          <ScrollView
+            ref={
+              recentHistoryScrollRef
+            }
+            style={[
+              styles.recentHistoryScroll,
+
+              landscape &&
+                styles.recentHistoryScrollLandscape,
+            ]}
+            contentContainerStyle={
+              styles.recentHistoryContent
+            }
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            onContentSizeChange={() => {
+              recentHistoryScrollRef
+                .current
+                ?.scrollToEnd({
+                  animated: true,
+                });
+            }}
+          >
+            {displayHistory.map(
+              renderHistoryItem
+            )}
+          </ScrollView>
+        )}
+      </View>
     );
 
   const renderCounter =
@@ -617,6 +686,7 @@ export default function CounterScreen() {
                   currentTheme.accent,
               },
             ]}
+            activeOpacity={0.8}
             onPress={
               isRow
                 ? addRow
@@ -647,6 +717,7 @@ export default function CounterScreen() {
               landscape &&
                 styles.newCountButtonLandscape,
             ]}
+            activeOpacity={0.7}
             onPress={
               isRow
                 ? startNewRow
@@ -656,6 +727,10 @@ export default function CounterScreen() {
             <Text
               style={[
                 styles.newCountText,
+
+                landscape &&
+                  styles.newCountTextLandscape,
+
                 {
                   color:
                     currentTheme.subText,
@@ -693,6 +768,7 @@ export default function CounterScreen() {
                 currentTheme.soft,
             },
           ]}
+          activeOpacity={0.8}
           onPress={
             addMark
           }
@@ -729,6 +805,7 @@ export default function CounterScreen() {
               0 &&
               styles.undoDisabled,
           ]}
+          activeOpacity={0.8}
           onPress={undo}
           disabled={
             project
@@ -738,15 +815,17 @@ export default function CounterScreen() {
           }
         >
           <Text
-            style={{
-              color:
-                currentTheme.text,
+            style={[
+              styles.undoText,
 
-              fontSize:
-                landscape
-                  ? 24
-                  : 28,
-            }}
+              landscape &&
+                styles.undoTextLandscape,
+
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
           >
             ↶
           </Text>
@@ -776,6 +855,10 @@ export default function CounterScreen() {
         <Text
           style={[
             styles.sectionTitle,
+
+            landscape &&
+              styles.sectionTitleLandscape,
+
             {
               color:
                 currentTheme.text,
@@ -790,6 +873,10 @@ export default function CounterScreen() {
         <Text
           style={[
             styles.memoText,
+
+            landscape &&
+              styles.memoTextLandscape,
+
             {
               color:
                 project.memo
@@ -810,6 +897,7 @@ export default function CounterScreen() {
     <SafeAreaView
       style={[
         styles.safeArea,
+
         {
           backgroundColor:
             currentTheme.background,
@@ -819,6 +907,7 @@ export default function CounterScreen() {
       <View
         style={[
           styles.container,
+
           {
             backgroundColor:
               currentTheme.background,
@@ -845,6 +934,7 @@ export default function CounterScreen() {
             <Text
               style={[
                 styles.backText,
+
                 {
                   color:
                     currentTheme.text,
@@ -912,26 +1002,31 @@ export default function CounterScreen() {
               styles.landscapeContent
             }
           >
-            <ScrollView
+            {/* 左側 */}
+            <View
               style={
                 styles.landscapeLeft
-              }
-              contentContainerStyle={
-                styles.landscapeLeftContent
-              }
-              showsVerticalScrollIndicator={
-                false
               }
             >
               {renderHistory(
                 true
               )}
 
-              {renderMemo(
-                true
-              )}
-            </ScrollView>
+              <ScrollView
+                style={
+                  styles.landscapeMemoScroll
+                }
+                showsVerticalScrollIndicator={
+                  false
+                }
+              >
+                {renderMemo(
+                  true
+                )}
+              </ScrollView>
+            </View>
 
+            {/* 右側 */}
             <View
               style={
                 styles.landscapeMain
@@ -956,6 +1051,7 @@ export default function CounterScreen() {
                 <View
                   style={[
                     styles.landscapeDivider,
+
                     {
                       backgroundColor:
                         currentTheme.border,
@@ -982,13 +1078,20 @@ export default function CounterScreen() {
           </View>
         )}
 
-        {/* History modal */}
+        {/* Full history */}
         <Modal
           visible={
             historyModalVisible
           }
           transparent
           animationType="fade"
+          supportedOrientations={[
+            'portrait',
+            'portrait-upside-down',
+            'landscape',
+            'landscape-left',
+            'landscape-right',
+          ]}
           onRequestClose={() =>
             setHistoryModalVisible(
               false
@@ -1021,6 +1124,7 @@ export default function CounterScreen() {
                 <Text
                   style={[
                     styles.modalTitle,
+
                     {
                       color:
                         currentTheme.text,
@@ -1051,76 +1155,133 @@ export default function CounterScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView>
-                {project.history.map(
-                  (item) => (
-                    <View
-                      key={item.id}
-                      style={[
-                        styles.fullHistoryRow,
-                        {
-                          borderBottomColor:
-                            currentTheme.border,
-                        },
-                      ]}
-                    >
-                      <View>
-                        <Text
-                          style={[
-                            styles.fullHistoryCount,
-                            {
-                              color:
-                                currentTheme.text,
-                            },
-                          ]}
-                        >
-                          {isJapanese
-                            ? `${item.row}段　${item.stitch}目`
-                            : `${item.row} Row　${item.stitch} Stitches`}
-                        </Text>
+              <ScrollView
+                showsVerticalScrollIndicator
+              >
+                {displayHistory.map(
+                  (
+                    item,
+                    index
+                  ) => {
+                    const isNewest =
+                      index ===
+                      displayHistory.length -
+                        1;
 
-                        <Text
-                          style={[
-                            styles.fullHistoryType,
-                            {
-                              color:
-                                currentTheme.subText,
-                            },
-                          ]}
-                        >
-                          {getHistoryTypeLabel(
-                            item.type
-                          )}
-                        </Text>
-                      </View>
+                    return (
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.fullHistoryRow,
 
-                      {item.type ===
-                        'mark' && (
+                          {
+                            borderBottomColor:
+                              currentTheme.border,
+                          },
+                        ]}
+                      >
                         <View
-                          style={[
-                            styles.pausedBadge,
-                            {
-                              backgroundColor:
-                                currentTheme.soft,
-                            },
-                          ]}
+                          style={
+                            styles.fullHistoryLeft
+                          }
                         >
                           <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-                              fontSize:
-                                12,
-                            }}
+                            style={[
+                              styles.fullHistoryCount,
+
+                              {
+                                color:
+                                  currentTheme.text,
+                              },
+                            ]}
                           >
                             {isJapanese
-                              ? '途中'
-                              : 'Paused'}
+                              ? `${item.row}段　${item.stitch}目`
+                              : `${item.row} Row  ${item.stitch} Stitches`}
+                          </Text>
+
+                          <Text
+                            style={[
+                              styles.fullHistoryType,
+
+                              {
+                                color:
+                                  currentTheme.subText,
+                              },
+                            ]}
+                          >
+                            {getHistoryTypeLabel(
+                              item.type
+                            )}
                           </Text>
                         </View>
-                      )}
-                    </View>
-                  )
+
+                        <View
+                          style={
+                            styles.fullHistoryRight
+                          }
+                        >
+                          {item.type ===
+                            'mark' && (
+                            <View
+                              style={[
+                                styles.pausedBadge,
+
+                                {
+                                  backgroundColor:
+                                    currentTheme.soft,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={{
+                                  color:
+                                    currentTheme.text,
+                                  fontSize:
+                                    12,
+                                }}
+                              >
+                                {isJapanese
+                                  ? '途中'
+                                  : 'Paused'}
+                              </Text>
+                            </View>
+                          )}
+
+                          {isNewest && (
+                            <Text
+                              style={[
+                                styles.newLabelFull,
+
+                                {
+                                  color:
+                                    currentTheme.accent,
+                                },
+                              ]}
+                            >
+                              NEW
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  }
+                )}
+
+                {displayHistory.length ===
+                  0 && (
+                  <Text
+                    style={{
+                      color:
+                        currentTheme.subText,
+                      paddingVertical:
+                        20,
+                    }}
+                  >
+                    {isJapanese
+                      ? '履歴はまだありません'
+                      : 'No history yet'}
+                  </Text>
                 )}
               </ScrollView>
             </View>
@@ -1163,9 +1324,9 @@ const styles =
     },
 
     headerLandscape: {
-      paddingTop: 6,
-      paddingBottom: 6,
-      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 4,
+      paddingHorizontal: 14,
     },
 
     backButton: {
@@ -1197,8 +1358,12 @@ const styles =
       paddingHorizontal: 24,
     },
 
+    /*
+     * Recent history
+     */
+
     historyArea: {
-      minHeight: 145,
+      height: 180,
       borderRadius: 22,
       padding: 18,
       marginBottom: 26,
@@ -1206,10 +1371,10 @@ const styles =
     },
 
     historyAreaLandscape: {
-      minHeight: 120,
-      padding: 14,
-      marginBottom: 12,
-      borderRadius: 18,
+      height: 138,
+      padding: 10,
+      marginBottom: 8,
+      borderRadius: 16,
     },
 
     historyHeader: {
@@ -1219,29 +1384,76 @@ const styles =
       alignItems: 'center',
     },
 
+    historyArrow: {
+      fontSize: 27,
+      lineHeight: 27,
+    },
+
     sectionTitle: {
       fontSize: 18,
       fontWeight: '700',
     },
 
-    recentHistoryList: {
-      marginTop: 14,
+    sectionTitleLandscape: {
+      fontSize: 15,
+    },
+
+    recentHistoryScroll: {
+      flex: 1,
+      marginTop: 10,
+    },
+
+    recentHistoryScrollLandscape: {
+      marginTop: 5,
+    },
+
+    recentHistoryContent: {
       gap: 8,
+      paddingBottom: 2,
+    },
+
+    emptyHistoryText: {
+      marginTop: 18,
     },
 
     historyRow: {
+      minHeight: 26,
       flexDirection: 'row',
+      alignItems: 'center',
       justifyContent:
         'space-between',
+      gap: 5,
+    },
+
+    historyLeft: {
+      flex: 1,
+      flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 5,
+      minWidth: 0,
+    },
+
+    historyCountText: {
+      flexShrink: 1,
+      fontSize: 14,
     },
 
     pausedBadge: {
-      paddingHorizontal: 9,
-      paddingVertical: 4,
-      borderRadius: 12,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 10,
     },
+
+    newLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+      marginLeft: 4,
+    },
+
+    /*
+     * Counter
+     */
 
     counterSection: {
       alignItems: 'center',
@@ -1268,7 +1480,8 @@ const styles =
     },
 
     counterNumberLandscape: {
-      fontSize: 52,
+      fontSize: 68,
+      lineHeight: 74,
     },
 
     counterUnit: {
@@ -1278,8 +1491,8 @@ const styles =
     },
 
     counterUnitLandscape: {
-      fontSize: 17,
-      marginBottom: 6,
+      fontSize: 19,
+      marginBottom: 7,
     },
 
     plusButton: {
@@ -1292,9 +1505,9 @@ const styles =
     },
 
     plusButtonLandscape: {
-      width: 90,
-      height: 90,
-      borderRadius: 45,
+      width: 116,
+      height: 116,
+      borderRadius: 58,
     },
 
     plusText: {
@@ -1303,8 +1516,8 @@ const styles =
     },
 
     plusTextLandscape: {
-      fontSize: 52,
-      lineHeight: 58,
+      fontSize: 66,
+      lineHeight: 72,
     },
 
     newCountButton: {
@@ -1312,13 +1525,21 @@ const styles =
     },
 
     newCountButtonLandscape: {
-      paddingTop: 8,
-      paddingBottom: 6,
+      paddingTop: 7,
+      paddingBottom: 4,
     },
 
     newCountText: {
       fontSize: 15,
     },
+
+    newCountTextLandscape: {
+      fontSize: 16,
+    },
+
+    /*
+     * Mark / Undo
+     */
 
     actionRow: {
       flexDirection: 'row',
@@ -1329,8 +1550,8 @@ const styles =
     },
 
     actionRowLandscape: {
-      marginBottom: 10,
-      marginTop: 4,
+      marginBottom: 5,
+      marginTop: 0,
     },
 
     markButton: {
@@ -1343,8 +1564,8 @@ const styles =
     },
 
     markButtonLandscape: {
-      minWidth: 110,
-      minHeight: 44,
+      minWidth: 120,
+      minHeight: 46,
       paddingVertical: 10,
     },
 
@@ -1367,6 +1588,18 @@ const styles =
       opacity: 0.4,
     },
 
+    undoText: {
+      fontSize: 28,
+    },
+
+    undoTextLandscape: {
+      fontSize: 25,
+    },
+
+    /*
+     * Memo
+     */
+
     memoArea: {
       borderRadius: 22,
       padding: 20,
@@ -1375,29 +1608,38 @@ const styles =
     },
 
     memoAreaLandscape: {
-      padding: 14,
-      borderRadius: 18,
-      marginBottom: 10,
+      padding: 10,
+      borderRadius: 16,
+      marginBottom: 6,
     },
 
     memoText: {
       marginTop: 12,
     },
 
+    memoTextLandscape: {
+      marginTop: 6,
+      fontSize: 13,
+    },
+
+    /*
+     * Landscape
+     */
+
     landscapeContent: {
       flex: 1,
       flexDirection: 'row',
-      paddingHorizontal: 16,
-      paddingBottom: 8,
-      gap: 16,
+      paddingHorizontal: 12,
+      paddingBottom: 5,
+      gap: 12,
     },
 
     landscapeLeft: {
-      width: '30%',
+      width: '21%',
     },
 
-    landscapeLeftContent: {
-      paddingBottom: 10,
+    landscapeMemoScroll: {
+      flex: 1,
     },
 
     landscapeMain: {
@@ -1416,8 +1658,12 @@ const styles =
 
     landscapeDivider: {
       width: 1,
-      marginVertical: 16,
+      marginVertical: 12,
     },
+
+    /*
+     * Full history modal
+     */
 
     modalOverlay: {
       flex: 1,
@@ -1463,6 +1709,17 @@ const styles =
       paddingVertical: 12,
     },
 
+    fullHistoryLeft: {
+      flex: 1,
+    },
+
+    fullHistoryRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginLeft: 12,
+    },
+
     fullHistoryCount: {
       fontSize: 18,
       fontWeight: '600',
@@ -1470,5 +1727,11 @@ const styles =
 
     fullHistoryType: {
       marginTop: 4,
+    },
+
+    newLabelFull: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.4,
     },
   });

@@ -22,6 +22,7 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -37,6 +38,12 @@ import {
 } from '../theme/themes';
 
 export default function ProjectListScreen() {
+  const { width, height } =
+    useWindowDimensions();
+
+  const isLandscape =
+    width > height;
+
   const [
     appData,
     setAppData,
@@ -331,10 +338,310 @@ export default function ProjectListScreen() {
     );
   };
 
+  const renderProjectForm = (
+    mode:
+      | 'create'
+      | 'edit'
+  ) => {
+    const isCreate =
+      mode === 'create';
+
+    const name =
+      isCreate
+        ? projectName
+        : editName;
+
+    const note =
+      isCreate
+        ? memo
+        : editMemo;
+
+    const setName =
+      isCreate
+        ? setProjectName
+        : setEditName;
+
+    const setNote =
+      isCreate
+        ? setMemo
+        : setEditMemo;
+
+    const close =
+      isCreate
+        ? closeCreateModal
+        : closeEditModal;
+
+    const save =
+      isCreate
+        ? createProject
+        : saveEditedProject;
+
+    return (
+      <KeyboardAvoidingView
+        style={
+          styles.modalKeyboardView
+        }
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : 'height'
+        }
+      >
+        <TouchableWithoutFeedback
+          onPress={
+            Keyboard.dismiss
+          }
+          accessible={false}
+        >
+          <View
+            style={[
+              styles.modalOverlay,
+
+              isLandscape &&
+                styles.modalOverlayLandscape,
+            ]}
+          >
+            <TouchableWithoutFeedback>
+              <View
+                style={[
+                  styles.modalContent,
+
+                  isLandscape
+                    ? styles.modalContentLandscape
+                    : styles.modalContentPortrait,
+
+                  {
+                    backgroundColor:
+                      currentTheme.surface,
+                  },
+                ]}
+              >
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={
+                    false
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.modalTitle,
+
+                      {
+                        color:
+                          currentTheme.text,
+                      },
+                    ]}
+                  >
+                    {isCreate
+                      ? isJapanese
+                        ? '新しい作品'
+                        : 'New Project'
+                      : isJapanese
+                        ? '作品を編集'
+                        : 'Edit Project'}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.label,
+
+                      {
+                        color:
+                          currentTheme.text,
+                      },
+                    ]}
+                  >
+                    {isJapanese
+                      ? '作品名'
+                      : 'Project Name'}
+                  </Text>
+
+                  <TextInput
+                    style={[
+                      styles.input,
+
+                      {
+                        color:
+                          currentTheme.text,
+
+                        backgroundColor:
+                          currentTheme.surface,
+
+                        borderColor:
+                          currentTheme.border,
+                      },
+                    ]}
+                    value={name}
+                    onChangeText={
+                      setName
+                    }
+                    placeholder={
+                      isJapanese
+                        ? '作品名'
+                        : 'Project Name'
+                    }
+                    placeholderTextColor={
+                      currentTheme.subText
+                    }
+                  />
+
+                  <Text
+                    style={[
+                      styles.label,
+
+                      {
+                        color:
+                          currentTheme.text,
+                      },
+                    ]}
+                  >
+                    {isJapanese
+                      ? 'メモ'
+                      : 'Note'}
+                  </Text>
+
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.memoInput,
+
+                      {
+                        color:
+                          currentTheme.text,
+
+                        backgroundColor:
+                          currentTheme.surface,
+
+                        borderColor:
+                          currentTheme.border,
+                      },
+                    ]}
+                    value={note}
+                    onChangeText={
+                      setNote
+                    }
+                    placeholder={
+                      isJapanese
+                        ? '任意'
+                        : 'Optional'
+                    }
+                    placeholderTextColor={
+                      currentTheme.subText
+                    }
+                    multiline
+                    textAlignVertical="top"
+                  />
+
+                  <View
+                    style={
+                      styles.modalButtons
+                    }
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.cancelButton,
+
+                        {
+                          backgroundColor:
+                            currentTheme.soft,
+                        },
+                      ]}
+                      onPress={close}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            currentTheme.text,
+                          fontWeight:
+                            '600',
+                        }}
+                      >
+                        {isJapanese
+                          ? 'キャンセル'
+                          : 'Cancel'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.createButton,
+
+                        {
+                          backgroundColor:
+                            currentTheme.accent,
+                        },
+
+                        name.trim() ===
+                          '' &&
+                          styles.disabledButton,
+                      ]}
+                      onPress={save}
+                      disabled={
+                        name.trim() ===
+                        ''
+                      }
+                    >
+                      <Text
+                        style={{
+                          color:
+                            currentTheme.text,
+                          fontWeight:
+                            '700',
+                        }}
+                      >
+                        {isCreate
+                          ? isJapanese
+                            ? '作成'
+                            : 'Create'
+                          : isJapanese
+                            ? '保存'
+                            : 'Save'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {!isCreate && (
+                    <TouchableOpacity
+                      style={[
+                        styles.deleteButton,
+
+                        {
+                          backgroundColor:
+                            currentTheme.dangerBackground,
+                        },
+                      ]}
+                      onPress={
+                        deleteProject
+                      }
+                    >
+                      <Text
+                        style={{
+                          color:
+                            currentTheme.dangerText,
+                          fontWeight:
+                            '700',
+                        }}
+                      >
+                        {isJapanese
+                          ? 'この作品を削除'
+                          : 'Delete Project'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    );
+  };
+
   return (
     <SafeAreaView
       style={[
         styles.safeArea,
+
         {
           backgroundColor:
             currentTheme.background,
@@ -344,19 +651,20 @@ export default function ProjectListScreen() {
       <View
         style={[
           styles.container,
+
           {
             backgroundColor:
               currentTheme.background,
           },
         ]}
       >
-        {/* Header */}
         <View
           style={styles.header}
         >
           <Text
             style={[
               styles.title,
+
               {
                 color:
                   currentTheme.text,
@@ -371,6 +679,7 @@ export default function ProjectListScreen() {
           <TouchableOpacity
             style={[
               styles.settingsButton,
+
               {
                 backgroundColor:
                   currentTheme.soft,
@@ -383,6 +692,7 @@ export default function ProjectListScreen() {
             <Text
               style={[
                 styles.settingsIcon,
+
                 {
                   color:
                     currentTheme.text,
@@ -394,7 +704,6 @@ export default function ProjectListScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Project list */}
         <ScrollView
           style={
             styles.projectList
@@ -412,6 +721,7 @@ export default function ProjectListScreen() {
                 key={project.id}
                 style={[
                   styles.projectCard,
+
                   {
                     backgroundColor:
                       currentTheme.surface,
@@ -442,6 +752,7 @@ export default function ProjectListScreen() {
                     <Text
                       style={[
                         styles.projectName,
+
                         {
                           color:
                             currentTheme.text,
@@ -454,6 +765,7 @@ export default function ProjectListScreen() {
                     <Text
                       style={[
                         styles.projectCount,
+
                         {
                           color:
                             currentTheme.subText,
@@ -470,6 +782,7 @@ export default function ProjectListScreen() {
                       <Text
                         style={[
                           styles.projectMemo,
+
                           {
                             color:
                               currentTheme.subText,
@@ -498,6 +811,7 @@ export default function ProjectListScreen() {
                   <Text
                     style={[
                       styles.editButtonText,
+
                       {
                         color:
                           currentTheme.text,
@@ -518,12 +832,12 @@ export default function ProjectListScreen() {
           />
         </ScrollView>
 
-        {/* Add */}
         {appData.projects.length <
           5 && (
           <TouchableOpacity
             style={[
               styles.addButton,
+
               {
                 backgroundColor:
                   currentTheme.accent,
@@ -536,6 +850,7 @@ export default function ProjectListScreen() {
             <Text
               style={[
                 styles.addButtonText,
+
                 {
                   color:
                     currentTheme.text,
@@ -547,457 +862,48 @@ export default function ProjectListScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Create modal */}
         <Modal
           visible={
             createModalVisible
           }
           transparent
           animationType="fade"
+          supportedOrientations={[
+            'portrait',
+            'portrait-upside-down',
+            'landscape',
+            'landscape-left',
+            'landscape-right',
+          ]}
           onRequestClose={
             closeCreateModal
           }
         >
-          <KeyboardAvoidingView
-            style={
-              styles.modalKeyboardView
-            }
-            behavior={
-              Platform.OS ===
-              'ios'
-                ? 'padding'
-                : 'height'
-            }
-          >
-            <TouchableWithoutFeedback
-              onPress={
-                Keyboard.dismiss
-              }
-            >
-              <View
-                style={
-                  styles.modalOverlay
-                }
-              >
-                <TouchableWithoutFeedback>
-                  <View
-                    style={[
-                      styles.modalContent,
-                      {
-                        backgroundColor:
-                          currentTheme.surface,
-                      },
-                    ]}
-                  >
-                    <ScrollView
-                      keyboardShouldPersistTaps="handled"
-                    >
-                      <Text
-                        style={[
-                          styles.modalTitle,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? '新しい作品'
-                          : 'New Project'}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.label,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? '作品名'
-                          : 'Project Name'}
-                      </Text>
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          {
-                            color:
-                              currentTheme.text,
-                            backgroundColor:
-                              currentTheme.surface,
-                            borderColor:
-                              currentTheme.border,
-                          },
-                        ]}
-                        value={
-                          projectName
-                        }
-                        onChangeText={
-                          setProjectName
-                        }
-                        placeholder={
-                          isJapanese
-                            ? '作品名'
-                            : 'Project Name'
-                        }
-                        placeholderTextColor={
-                          currentTheme.subText
-                        }
-                        autoFocus
-                      />
-
-                      <Text
-                        style={[
-                          styles.label,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? 'メモ'
-                          : 'Note'}
-                      </Text>
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.memoInput,
-                          {
-                            color:
-                              currentTheme.text,
-                            backgroundColor:
-                              currentTheme.surface,
-                            borderColor:
-                              currentTheme.border,
-                          },
-                        ]}
-                        value={memo}
-                        onChangeText={
-                          setMemo
-                        }
-                        placeholder={
-                          isJapanese
-                            ? '任意'
-                            : 'Optional'
-                        }
-                        placeholderTextColor={
-                          currentTheme.subText
-                        }
-                        multiline
-                      />
-
-                      <View
-                        style={
-                          styles.modalButtons
-                        }
-                      >
-                        <TouchableOpacity
-                          style={[
-                            styles.cancelButton,
-                            {
-                              backgroundColor:
-                                currentTheme.soft,
-                            },
-                          ]}
-                          onPress={
-                            closeCreateModal
-                          }
-                        >
-                          <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-                              fontWeight:
-                                '600',
-                            }}
-                          >
-                            {isJapanese
-                              ? 'キャンセル'
-                              : 'Cancel'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.createButton,
-                            {
-                              backgroundColor:
-                                currentTheme.accent,
-                            },
-
-                            projectName.trim() ===
-                              '' &&
-                              styles.disabledButton,
-                          ]}
-                          onPress={
-                            createProject
-                          }
-                          disabled={
-                            projectName.trim() ===
-                            ''
-                          }
-                        >
-                          <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-                              fontWeight:
-                                '700',
-                            }}
-                          >
-                            {isJapanese
-                              ? '作成'
-                              : 'Create'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </ScrollView>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
+          {renderProjectForm(
+            'create'
+          )}
         </Modal>
 
-        {/* Edit modal */}
         <Modal
           visible={
             editModalVisible
           }
           transparent
           animationType="fade"
+          supportedOrientations={[
+            'portrait',
+            'portrait-upside-down',
+            'landscape',
+            'landscape-left',
+            'landscape-right',
+          ]}
           onRequestClose={
             closeEditModal
           }
         >
-          <KeyboardAvoidingView
-            style={
-              styles.modalKeyboardView
-            }
-            behavior={
-              Platform.OS ===
-              'ios'
-                ? 'padding'
-                : 'height'
-            }
-          >
-            <TouchableWithoutFeedback
-              onPress={
-                Keyboard.dismiss
-              }
-            >
-              <View
-                style={
-                  styles.modalOverlay
-                }
-              >
-                <TouchableWithoutFeedback>
-                  <View
-                    style={[
-                      styles.modalContent,
-                      {
-                        backgroundColor:
-                          currentTheme.surface,
-                      },
-                    ]}
-                  >
-                    <ScrollView
-                      keyboardShouldPersistTaps="handled"
-                    >
-                      <Text
-                        style={[
-                          styles.modalTitle,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? '作品を編集'
-                          : 'Edit Project'}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.label,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? '作品名'
-                          : 'Project Name'}
-                      </Text>
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          {
-                            color:
-                              currentTheme.text,
-                            borderColor:
-                              currentTheme.border,
-                            backgroundColor:
-                              currentTheme.surface,
-                          },
-                        ]}
-                        value={
-                          editName
-                        }
-                        onChangeText={
-                          setEditName
-                        }
-                      />
-
-                      <Text
-                        style={[
-                          styles.label,
-                          {
-                            color:
-                              currentTheme.text,
-                          },
-                        ]}
-                      >
-                        {isJapanese
-                          ? 'メモ'
-                          : 'Note'}
-                      </Text>
-
-                      <TextInput
-                        style={[
-                          styles.input,
-                          styles.memoInput,
-                          {
-                            color:
-                              currentTheme.text,
-                            borderColor:
-                              currentTheme.border,
-                            backgroundColor:
-                              currentTheme.surface,
-                          },
-                        ]}
-                        value={
-                          editMemo
-                        }
-                        onChangeText={
-                          setEditMemo
-                        }
-                        placeholder={
-                          isJapanese
-                            ? '任意'
-                            : 'Optional'
-                        }
-                        placeholderTextColor={
-                          currentTheme.subText
-                        }
-                        multiline
-                      />
-
-                      <View
-                        style={
-                          styles.modalButtons
-                        }
-                      >
-                        <TouchableOpacity
-                          style={[
-                            styles.cancelButton,
-                            {
-                              backgroundColor:
-                                currentTheme.soft,
-                            },
-                          ]}
-                          onPress={
-                            closeEditModal
-                          }
-                        >
-                          <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-                              fontWeight:
-                                '600',
-                            }}
-                          >
-                            {isJapanese
-                              ? 'キャンセル'
-                              : 'Cancel'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.createButton,
-                            {
-                              backgroundColor:
-                                currentTheme.accent,
-                            },
-
-                            editName.trim() ===
-                              '' &&
-                              styles.disabledButton,
-                          ]}
-                          onPress={
-                            saveEditedProject
-                          }
-                          disabled={
-                            editName.trim() ===
-                            ''
-                          }
-                        >
-                          <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-                              fontWeight:
-                                '700',
-                            }}
-                          >
-                            {isJapanese
-                              ? '保存'
-                              : 'Save'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.deleteButton,
-                          {
-                            backgroundColor:
-                              currentTheme.dangerBackground,
-                          },
-                        ]}
-                        onPress={
-                          deleteProject
-                        }
-                      >
-                        <Text
-                          style={{
-                            color:
-                              currentTheme.dangerText,
-                            fontWeight:
-                              '700',
-                          }}
-                        >
-                          {isJapanese
-                            ? 'この作品を削除'
-                            : 'Delete Project'}
-                        </Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
+          {renderProjectForm(
+            'edit'
+          )}
         </Modal>
       </View>
     </SafeAreaView>
@@ -1146,10 +1052,24 @@ const styles =
         'rgba(0,0,0,0.35)',
     },
 
+    modalOverlayLandscape: {
+      paddingVertical: 8,
+    },
+
     modalContent: {
       borderRadius: 28,
       padding: 24,
-      maxHeight: '85%',
+    },
+
+    modalContentPortrait: {
+      width: '100%',
+      maxHeight: '82%',
+    },
+
+    modalContentLandscape: {
+      width: '72%',
+      maxHeight: '92%',
+      alignSelf: 'center',
     },
 
     modalTitle: {
@@ -1174,7 +1094,7 @@ const styles =
     },
 
     memoInput: {
-      minHeight: 100,
+      minHeight: 72,
     },
 
     modalButtons: {
