@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -25,9 +26,8 @@ import {
   HistoryItem,
   HistoryType,
   Language,
-  Project,
   loadAppData,
-  saveAppData,
+  Project,
   updateProject,
 } from '../../storage/appStorage';
 
@@ -40,6 +40,12 @@ export default function CounterScreen() {
     useLocalSearchParams<{
       id: string;
     }>();
+
+  const { width, height } =
+    useWindowDimensions();
+
+  const isLandscape =
+    width > height;
 
   const [
     project,
@@ -82,8 +88,7 @@ export default function CounterScreen() {
           const savedProject =
             data.projects.find(
               (project) =>
-                project.id ===
-                id
+                project.id === id
             ) ?? null;
 
           if (active) {
@@ -134,28 +139,6 @@ export default function CounterScreen() {
 
   const isJapanese =
     language === 'ja';
-
-  const changeLanguage =
-    async (
-      nextLanguage: Language
-    ) => {
-      const data =
-        await loadAppData();
-
-      const nextData = {
-        ...data,
-        language:
-          nextLanguage,
-      };
-
-      await saveAppData(
-        nextData
-      );
-
-      setLanguage(
-        nextLanguage
-      );
-    };
 
   const persistProject =
     async (
@@ -231,7 +214,6 @@ export default function CounterScreen() {
 
       await persistProject({
         ...project,
-
         stitch:
           project.stitch +
           1,
@@ -367,13 +349,10 @@ export default function CounterScreen() {
 
       await persistProject({
         ...project,
-
         row:
           previous.row,
-
         stitch:
           previous.stitch,
-
         history:
           previous.history,
 
@@ -389,9 +368,12 @@ export default function CounterScreen() {
     useMemo(() => {
       return project.history.slice(
         0,
-        3
+        isLandscape ? 2 : 3
       );
-    }, [project.history]);
+    }, [
+      project.history,
+      isLandscape,
+    ]);
 
   const getHistoryTypeLabel =
     (
@@ -418,11 +400,416 @@ export default function CounterScreen() {
         : 'New Stitch';
     };
 
+  const renderHistory =
+    (
+      landscape = false
+    ) => (
+      <TouchableOpacity
+        style={[
+          styles.historyArea,
+
+          landscape &&
+            styles.historyAreaLandscape,
+
+          {
+            backgroundColor:
+              currentTheme.surface,
+
+            borderColor:
+              currentTheme.border,
+          },
+        ]}
+        onPress={() =>
+          setHistoryModalVisible(
+            true
+          )
+        }
+      >
+        <View
+          style={
+            styles.historyHeader
+          }
+        >
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
+          >
+            {isJapanese
+              ? '最近の履歴'
+              : 'Recent History'}
+          </Text>
+
+          <Text
+            style={{
+              color:
+                currentTheme.subText,
+              fontSize: 28,
+            }}
+          >
+            ›
+          </Text>
+        </View>
+
+        <View
+          style={
+            styles.recentHistoryList
+          }
+        >
+          {recentHistory.map(
+            (item) => (
+              <View
+                key={item.id}
+                style={
+                  styles.historyRow
+                }
+              >
+                <Text
+                  style={{
+                    color:
+                      currentTheme.text,
+                  }}
+                >
+                  {isJapanese
+                    ? `${item.row}段　${item.stitch}目`
+                    : `${item.row} Row　${item.stitch} Stitches`}
+                </Text>
+
+                {item.type ===
+                  'mark' && (
+                  <View
+                    style={[
+                      styles.pausedBadge,
+                      {
+                        backgroundColor:
+                          currentTheme.soft,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          currentTheme.text,
+                        fontSize: 12,
+                      }}
+                    >
+                      {isJapanese
+                        ? '途中'
+                        : 'Paused'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )
+          )}
+
+          {recentHistory.length ===
+            0 && (
+            <Text
+              style={{
+                color:
+                  currentTheme.subText,
+              }}
+            >
+              {isJapanese
+                ? '履歴はまだありません'
+                : 'No history yet'}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+
+  const renderCounter =
+    (
+      type:
+        | 'row'
+        | 'stitch',
+
+      landscape = false
+    ) => {
+      const isRow =
+        type === 'row';
+
+      const number =
+        isRow
+          ? project.row
+          : project.stitch;
+
+      const unit =
+        isRow
+          ? isJapanese
+            ? '段'
+            : 'Row'
+          : isJapanese
+            ? '目'
+            : 'Stitch';
+
+      const newLabel =
+        isRow
+          ? isJapanese
+            ? '新しい段'
+            : 'New Row'
+          : isJapanese
+            ? '新しい目'
+            : 'New Stitch';
+
+      return (
+        <View
+          style={[
+            styles.counterSection,
+
+            landscape &&
+              styles.counterSectionLandscape,
+          ]}
+        >
+          <View
+            style={
+              styles.counterValueRow
+            }
+          >
+            <Text
+              style={[
+                styles.counterNumber,
+
+                landscape &&
+                  styles.counterNumberLandscape,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
+            >
+              {number}
+            </Text>
+
+            <Text
+              style={[
+                styles.counterUnit,
+
+                landscape &&
+                  styles.counterUnitLandscape,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
+            >
+              {unit}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.plusButton,
+
+              landscape &&
+                styles.plusButtonLandscape,
+
+              {
+                backgroundColor:
+                  currentTheme.accent,
+              },
+            ]}
+            onPress={
+              isRow
+                ? addRow
+                : addStitch
+            }
+          >
+            <Text
+              style={[
+                styles.plusText,
+
+                landscape &&
+                  styles.plusTextLandscape,
+
+                {
+                  color:
+                    currentTheme.text,
+                },
+              ]}
+            >
+              ＋
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.newCountButton,
+
+              landscape &&
+                styles.newCountButtonLandscape,
+            ]}
+            onPress={
+              isRow
+                ? startNewRow
+                : startNewStitch
+            }
+          >
+            <Text
+              style={[
+                styles.newCountText,
+                {
+                  color:
+                    currentTheme.subText,
+                },
+              ]}
+            >
+              {newLabel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    };
+
+  const renderActions =
+    (
+      landscape = false
+    ) => (
+      <View
+        style={[
+          styles.actionRow,
+
+          landscape &&
+            styles.actionRowLandscape,
+        ]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.markButton,
+
+            landscape &&
+              styles.markButtonLandscape,
+
+            {
+              backgroundColor:
+                currentTheme.soft,
+            },
+          ]}
+          onPress={
+            addMark
+          }
+        >
+          <Text
+            style={{
+              color:
+                currentTheme.text,
+              fontWeight:
+                '600',
+            }}
+          >
+            {isJapanese
+              ? '区切り'
+              : 'Mark'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.undoButton,
+
+            landscape &&
+              styles.undoButtonLandscape,
+
+            {
+              backgroundColor:
+                currentTheme.soft,
+            },
+
+            project
+              .undoStack
+              .length ===
+              0 &&
+              styles.undoDisabled,
+          ]}
+          onPress={undo}
+          disabled={
+            project
+              .undoStack
+              .length ===
+            0
+          }
+        >
+          <Text
+            style={{
+              color:
+                currentTheme.text,
+
+              fontSize:
+                landscape
+                  ? 24
+                  : 28,
+            }}
+          >
+            ↶
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+
+  const renderMemo =
+    (
+      landscape = false
+    ) => (
+      <View
+        style={[
+          styles.memoArea,
+
+          landscape &&
+            styles.memoAreaLandscape,
+
+          {
+            backgroundColor:
+              currentTheme.surface,
+            borderColor:
+              currentTheme.border,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color:
+                currentTheme.text,
+            },
+          ]}
+        >
+          {isJapanese
+            ? 'メモ'
+            : 'Note'}
+        </Text>
+
+        <Text
+          style={[
+            styles.memoText,
+            {
+              color:
+                project.memo
+                  ? currentTheme.text
+                  : currentTheme.subText,
+            },
+          ]}
+        >
+          {project.memo ||
+            (isJapanese
+              ? 'メモなし'
+              : 'No note')}
+        </Text>
+      </View>
+    );
+
   return (
     <SafeAreaView
       style={[
         styles.safeArea,
-
         {
           backgroundColor:
             currentTheme.background,
@@ -432,15 +819,20 @@ export default function CounterScreen() {
       <View
         style={[
           styles.container,
-
           {
             backgroundColor:
               currentTheme.background,
           },
         ]}
       >
+        {/* Header */}
         <View
-          style={styles.header}
+          style={[
+            styles.header,
+
+            isLandscape &&
+              styles.headerLandscape,
+          ]}
         >
           <TouchableOpacity
             style={
@@ -453,7 +845,6 @@ export default function CounterScreen() {
             <Text
               style={[
                 styles.backText,
-
                 {
                   color:
                     currentTheme.text,
@@ -468,6 +859,9 @@ export default function CounterScreen() {
             style={[
               styles.projectName,
 
+              isLandscape &&
+                styles.projectNameLandscape,
+
               {
                 color:
                   currentTheme.text,
@@ -479,489 +873,114 @@ export default function CounterScreen() {
           </Text>
 
           <View
-            style={[
-              styles.languageSwitch,
-
-              {
-                backgroundColor:
-                  currentTheme.soft,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.languageOption,
-
-                isJapanese && {
-                  backgroundColor:
-                    currentTheme.surface,
-                },
-              ]}
-              onPress={() =>
-                changeLanguage(
-                  'ja'
-                )
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    isJapanese
-                      ? currentTheme.text
-                      : currentTheme.subText,
-
-                  fontWeight:
-                    isJapanese
-                      ? '700'
-                      : '400',
-                }}
-              >
-                日
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.languageOption,
-
-                !isJapanese && {
-                  backgroundColor:
-                    currentTheme.surface,
-                },
-              ]}
-              onPress={() =>
-                changeLanguage(
-                  'en'
-                )
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    !isJapanese
-                      ? currentTheme.text
-                      : currentTheme.subText,
-
-                  fontWeight:
-                    !isJapanese
-                      ? '700'
-                      : '400',
-                }}
-              >
-                EN
-              </Text>
-            </TouchableOpacity>
-          </View>
+            style={
+              styles.headerSpacer
+            }
+          />
         </View>
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={
-            false
-          }
-        >
-          {/* History */}
-          <TouchableOpacity
-            style={[
-              styles.historyArea,
-
-              {
-                backgroundColor:
-                  currentTheme.surface,
-
-                borderColor:
-                  currentTheme.border,
-              },
-            ]}
-            onPress={() =>
-              setHistoryModalVisible(
-                true
-              )
+        {/* Portrait */}
+        {!isLandscape && (
+          <ScrollView
+            style={
+              styles.content
+            }
+            showsVerticalScrollIndicator={
+              false
             }
           >
-            <View
+            {renderHistory()}
+
+            {renderCounter(
+              'row'
+            )}
+
+            {renderCounter(
+              'stitch'
+            )}
+
+            {renderActions()}
+
+            {renderMemo()}
+          </ScrollView>
+        )}
+
+        {/* Landscape */}
+        {isLandscape && (
+          <View
+            style={
+              styles.landscapeContent
+            }
+          >
+            <ScrollView
               style={
-                styles.historyHeader
+                styles.landscapeLeft
+              }
+              contentContainerStyle={
+                styles.landscapeLeftContent
+              }
+              showsVerticalScrollIndicator={
+                false
               }
             >
-              <Text
-                style={[
-                  styles.sectionTitle,
+              {renderHistory(
+                true
+              )}
 
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {isJapanese
-                  ? '最近の履歴'
-                  : 'Recent History'}
-              </Text>
-
-              <Text
-                style={{
-                  color:
-                    currentTheme.subText,
-
-                  fontSize: 28,
-                }}
-              >
-                ›
-              </Text>
-            </View>
+              {renderMemo(
+                true
+              )}
+            </ScrollView>
 
             <View
               style={
-                styles.recentHistoryList
+                styles.landscapeMain
               }
             >
-              {recentHistory.map(
-                (item) => (
-                  <View
-                    key={item.id}
-                    style={
-                      styles.historyRow
-                    }
-                  >
-                    <Text
-                      style={{
-                        color:
-                          currentTheme.text,
-                      }}
-                    >
-                      {isJapanese
-                        ? `${item.row}段　${item.stitch}目`
-                        : `${item.row} Row　${item.stitch} Stitches`}
-                    </Text>
+              <View
+                style={
+                  styles.landscapeCounters
+                }
+              >
+                <View
+                  style={
+                    styles.landscapeCounterColumn
+                  }
+                >
+                  {renderCounter(
+                    'row',
+                    true
+                  )}
+                </View>
 
-                    {item.type ===
-                      'mark' && (
-                      <View
-                        style={[
-                          styles.pausedBadge,
+                <View
+                  style={[
+                    styles.landscapeDivider,
+                    {
+                      backgroundColor:
+                        currentTheme.border,
+                    },
+                  ]}
+                />
 
-                          {
-                            backgroundColor:
-                              currentTheme.soft,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={{
-                            color:
-                              currentTheme.text,
+                <View
+                  style={
+                    styles.landscapeCounterColumn
+                  }
+                >
+                  {renderCounter(
+                    'stitch',
+                    true
+                  )}
+                </View>
+              </View>
 
-                            fontSize:
-                              12,
-                          }}
-                        >
-                          {isJapanese
-                            ? '途中'
-                            : 'Paused'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )
+              {renderActions(
+                true
               )}
             </View>
-          </TouchableOpacity>
-
-          {/* Row */}
-          <View
-            style={
-              styles.counterSection
-            }
-          >
-            <View
-              style={
-                styles.counterValueRow
-              }
-            >
-              <Text
-                style={[
-                  styles.counterNumber,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {project.row}
-              </Text>
-
-              <Text
-                style={[
-                  styles.counterUnit,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {isJapanese
-                  ? '段'
-                  : 'Row'}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.plusButton,
-
-                {
-                  backgroundColor:
-                    currentTheme.accent,
-                },
-              ]}
-              onPress={
-                addRow
-              }
-            >
-              <Text
-                style={[
-                  styles.plusText,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                ＋
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={
-                styles.newCountButton
-              }
-              onPress={
-                startNewRow
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    currentTheme.subText,
-                }}
-              >
-                {isJapanese
-                  ? '新しい段'
-                  : 'New Row'}
-              </Text>
-            </TouchableOpacity>
           </View>
-
-          {/* Stitch */}
-          <View
-            style={
-              styles.counterSection
-            }
-          >
-            <View
-              style={
-                styles.counterValueRow
-              }
-            >
-              <Text
-                style={[
-                  styles.counterNumber,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {project.stitch}
-              </Text>
-
-              <Text
-                style={[
-                  styles.counterUnit,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {isJapanese
-                  ? '目'
-                  : 'Stitch'}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.plusButton,
-
-                {
-                  backgroundColor:
-                    currentTheme.accent,
-                },
-              ]}
-              onPress={
-                addStitch
-              }
-            >
-              <Text
-                style={[
-                  styles.plusText,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                ＋
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={
-                styles.newCountButton
-              }
-              onPress={
-                startNewStitch
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    currentTheme.subText,
-                }}
-              >
-                {isJapanese
-                  ? '新しい目'
-                  : 'New Stitch'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Mark / Undo */}
-          <View
-            style={
-              styles.actionRow
-            }
-          >
-            <TouchableOpacity
-              style={[
-                styles.markButton,
-
-                {
-                  backgroundColor:
-                    currentTheme.soft,
-                },
-              ]}
-              onPress={
-                addMark
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    currentTheme.text,
-
-                  fontWeight:
-                    '600',
-                }}
-              >
-                {isJapanese
-                  ? '区切り'
-                  : 'Mark'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.undoButton,
-
-                {
-                  backgroundColor:
-                    currentTheme.soft,
-                },
-
-                project
-                  .undoStack
-                  .length ===
-                  0 &&
-                  styles.undoDisabled,
-              ]}
-              onPress={undo}
-              disabled={
-                project
-                  .undoStack
-                  .length ===
-                0
-              }
-            >
-              <Text
-                style={{
-                  color:
-                    currentTheme.text,
-
-                  fontSize: 28,
-                }}
-              >
-                ↶
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Memo */}
-          <View
-            style={[
-              styles.memoArea,
-
-              {
-                backgroundColor:
-                  currentTheme.surface,
-
-                borderColor:
-                  currentTheme.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-
-                {
-                  color:
-                    currentTheme.text,
-                },
-              ]}
-            >
-              {isJapanese
-                ? 'メモ'
-                : 'Note'}
-            </Text>
-
-            <Text
-              style={[
-                styles.memoText,
-
-                {
-                  color:
-                    project.memo
-                      ? currentTheme.text
-                      : currentTheme.subText,
-                },
-              ]}
-            >
-              {project.memo ||
-                (isJapanese
-                  ? 'メモなし'
-                  : 'No note')}
-            </Text>
-          </View>
-        </ScrollView>
+        )}
 
         {/* History modal */}
         <Modal
@@ -985,6 +1004,9 @@ export default function CounterScreen() {
               style={[
                 styles.historyModal,
 
+                isLandscape &&
+                  styles.historyModalLandscape,
+
                 {
                   backgroundColor:
                     currentTheme.surface,
@@ -999,7 +1021,6 @@ export default function CounterScreen() {
                 <Text
                   style={[
                     styles.modalTitle,
-
                     {
                       color:
                         currentTheme.text,
@@ -1022,7 +1043,6 @@ export default function CounterScreen() {
                     style={{
                       color:
                         currentTheme.text,
-
                       fontSize: 30,
                     }}
                   >
@@ -1038,7 +1058,6 @@ export default function CounterScreen() {
                       key={item.id}
                       style={[
                         styles.fullHistoryRow,
-
                         {
                           borderBottomColor:
                             currentTheme.border,
@@ -1049,7 +1068,6 @@ export default function CounterScreen() {
                         <Text
                           style={[
                             styles.fullHistoryCount,
-
                             {
                               color:
                                 currentTheme.text,
@@ -1064,7 +1082,6 @@ export default function CounterScreen() {
                         <Text
                           style={[
                             styles.fullHistoryType,
-
                             {
                               color:
                                 currentTheme.subText,
@@ -1082,7 +1099,6 @@ export default function CounterScreen() {
                         <View
                           style={[
                             styles.pausedBadge,
-
                             {
                               backgroundColor:
                                 currentTheme.soft,
@@ -1093,7 +1109,6 @@ export default function CounterScreen() {
                             style={{
                               color:
                                 currentTheme.text,
-
                               fontSize:
                                 12,
                             }}
@@ -1147,34 +1162,34 @@ const styles =
       paddingBottom: 12,
     },
 
+    headerLandscape: {
+      paddingTop: 6,
+      paddingBottom: 6,
+      paddingHorizontal: 16,
+    },
+
     backButton: {
       width: 44,
     },
 
     backText: {
       fontSize: 40,
+      lineHeight: 42,
     },
 
     projectName: {
       flex: 1,
+      textAlign: 'center',
       fontSize: 22,
       fontWeight: '700',
     },
 
-    languageSwitch: {
-      flexDirection: 'row',
-      borderRadius: 22,
-      padding: 3,
+    projectNameLandscape: {
+      fontSize: 19,
     },
 
-    languageOption: {
-      minWidth: 38,
-      height: 36,
-      paddingHorizontal: 8,
-      alignItems: 'center',
-      justifyContent:
-        'center',
-      borderRadius: 18,
+    headerSpacer: {
+      width: 44,
     },
 
     content: {
@@ -1190,10 +1205,18 @@ const styles =
       borderWidth: 1,
     },
 
+    historyAreaLandscape: {
+      minHeight: 120,
+      padding: 14,
+      marginBottom: 12,
+      borderRadius: 18,
+    },
+
     historyHeader: {
       flexDirection: 'row',
       justifyContent:
         'space-between',
+      alignItems: 'center',
     },
 
     sectionTitle: {
@@ -1211,6 +1234,7 @@ const styles =
       justifyContent:
         'space-between',
       alignItems: 'center',
+      gap: 8,
     },
 
     pausedBadge: {
@@ -1222,6 +1246,13 @@ const styles =
     counterSection: {
       alignItems: 'center',
       marginBottom: 32,
+    },
+
+    counterSectionLandscape: {
+      flex: 1,
+      marginBottom: 0,
+      justifyContent:
+        'center',
     },
 
     counterValueRow: {
@@ -1236,10 +1267,19 @@ const styles =
       fontWeight: '700',
     },
 
+    counterNumberLandscape: {
+      fontSize: 52,
+    },
+
     counterUnit: {
       fontSize: 20,
       marginLeft: 6,
       marginBottom: 8,
+    },
+
+    counterUnitLandscape: {
+      fontSize: 17,
+      marginBottom: 6,
     },
 
     plusButton: {
@@ -1251,12 +1291,33 @@ const styles =
         'center',
     },
 
+    plusButtonLandscape: {
+      width: 90,
+      height: 90,
+      borderRadius: 45,
+    },
+
     plusText: {
       fontSize: 58,
+      lineHeight: 65,
+    },
+
+    plusTextLandscape: {
+      fontSize: 52,
+      lineHeight: 58,
     },
 
     newCountButton: {
       padding: 12,
+    },
+
+    newCountButtonLandscape: {
+      paddingTop: 8,
+      paddingBottom: 6,
+    },
+
+    newCountText: {
+      fontSize: 15,
     },
 
     actionRow: {
@@ -1267,11 +1328,24 @@ const styles =
       marginBottom: 30,
     },
 
+    actionRowLandscape: {
+      marginBottom: 10,
+      marginTop: 4,
+    },
+
     markButton: {
       minWidth: 112,
       padding: 14,
       borderRadius: 22,
       alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    markButtonLandscape: {
+      minWidth: 110,
+      minHeight: 44,
+      paddingVertical: 10,
     },
 
     undoButton: {
@@ -1281,6 +1355,12 @@ const styles =
       alignItems: 'center',
       justifyContent:
         'center',
+    },
+
+    undoButtonLandscape: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
     },
 
     undoDisabled: {
@@ -1294,8 +1374,49 @@ const styles =
       borderWidth: 1,
     },
 
+    memoAreaLandscape: {
+      padding: 14,
+      borderRadius: 18,
+      marginBottom: 10,
+    },
+
     memoText: {
       marginTop: 12,
+    },
+
+    landscapeContent: {
+      flex: 1,
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      gap: 16,
+    },
+
+    landscapeLeft: {
+      width: '30%',
+    },
+
+    landscapeLeftContent: {
+      paddingBottom: 10,
+    },
+
+    landscapeMain: {
+      flex: 1,
+    },
+
+    landscapeCounters: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'stretch',
+    },
+
+    landscapeCounterColumn: {
+      flex: 1,
+    },
+
+    landscapeDivider: {
+      width: 1,
+      marginVertical: 16,
     },
 
     modalOverlay: {
@@ -1313,10 +1434,17 @@ const styles =
       padding: 22,
     },
 
+    historyModalLandscape: {
+      maxHeight: '88%',
+      alignSelf: 'center',
+      width: '65%',
+    },
+
     modalHeader: {
       flexDirection: 'row',
       justifyContent:
         'space-between',
+      alignItems: 'center',
       marginBottom: 16,
     },
 

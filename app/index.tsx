@@ -27,21 +27,22 @@ import {
 
 import {
   AppData,
-  Language,
   loadAppData,
   Project,
   saveAppData,
 } from '../storage/appStorage';
 
 import {
-  ThemeName,
-  themeNames,
   themes,
 } from '../theme/themes';
 
 export default function ProjectListScreen() {
-  const [appData, setAppData] =
-    useState<AppData | null>(null);
+  const [
+    appData,
+    setAppData,
+  ] = useState<AppData | null>(
+    null
+  );
 
   const [
     createModalVisible,
@@ -54,12 +55,9 @@ export default function ProjectListScreen() {
   ] = useState(false);
 
   const [
-    themeModalVisible,
-    setThemeModalVisible,
-  ] = useState(false);
-
-  const [projectName, setProjectName] =
-    useState('');
+    projectName,
+    setProjectName,
+  ] = useState('');
 
   const [memo, setMemo] =
     useState('');
@@ -67,13 +65,20 @@ export default function ProjectListScreen() {
   const [
     editingProject,
     setEditingProject,
-  ] = useState<Project | null>(null);
+  ] =
+    useState<Project | null>(
+      null
+    );
 
-  const [editName, setEditName] =
-    useState('');
+  const [
+    editName,
+    setEditName,
+  ] = useState('');
 
-  const [editMemo, setEditMemo] =
-    useState('');
+  const [
+    editMemo,
+    setEditMemo,
+  ] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -99,10 +104,14 @@ export default function ProjectListScreen() {
   if (!appData) {
     return (
       <SafeAreaView
-        style={styles.loadingSafeArea}
+        style={
+          styles.loadingSafeArea
+        }
       >
         <View
-          style={styles.loadingContainer}
+          style={
+            styles.loadingContainer
+          }
         >
           <ActivityIndicator
             size="large"
@@ -112,42 +121,11 @@ export default function ProjectListScreen() {
     );
   }
 
-  const language: Language =
-    appData.language;
-
-  const isJapanese =
-    language === 'ja';
-
   const currentTheme =
     themes[appData.theme];
 
-  const changeLanguage =
-    async (
-      nextLanguage: Language
-    ) => {
-      const nextData: AppData = {
-        ...appData,
-        language: nextLanguage,
-      };
-
-      setAppData(nextData);
-      await saveAppData(nextData);
-    };
-
-  const changeTheme =
-    async (
-      nextTheme: ThemeName
-    ) => {
-      const nextData: AppData = {
-        ...appData,
-        theme: nextTheme,
-      };
-
-      setAppData(nextData);
-      await saveAppData(nextData);
-
-      setThemeModalVisible(false);
-    };
+  const isJapanese =
+    appData.language === 'ja';
 
   const openCreateModal = () => {
     setProjectName('');
@@ -179,13 +157,10 @@ export default function ProjectListScreen() {
 
       const project: Project = {
         id: `${Date.now()}-${Math.random()}`,
-
         name,
         memo: memo.trim(),
-
         row: 0,
         stitch: 0,
-
         history: [],
         undoStack: [],
       };
@@ -219,6 +194,10 @@ export default function ProjectListScreen() {
         id: project.id,
       },
     });
+  };
+
+  const openSettings = () => {
+    router.push('/settings');
   };
 
   const openEditModal = (
@@ -331,7 +310,8 @@ export default function ProjectListScreen() {
                     editingProject.id
                 );
 
-              const nextData: AppData = {
+              const nextData:
+                AppData = {
                 ...appData,
                 projects,
               };
@@ -349,18 +329,6 @@ export default function ProjectListScreen() {
         },
       ]
     );
-  };
-
-  const themeLabels:
-    Record<
-      ThemeName,
-      string
-    > = {
-    pink: 'Pink',
-    red: 'Red',
-    blue: 'Blue',
-    yellow: 'Yellow',
-    black: 'Black',
   };
 
   return (
@@ -400,118 +368,37 @@ export default function ProjectListScreen() {
               : 'Projects'}
           </Text>
 
-          <View
-            style={
-              styles.headerButtons
+          <TouchableOpacity
+            style={[
+              styles.settingsButton,
+              {
+                backgroundColor:
+                  currentTheme.soft,
+              },
+            ]}
+            onPress={
+              openSettings
             }
           >
-            <View
+            <Text
               style={[
-                styles.languageSwitch,
-
+                styles.settingsIcon,
                 {
-                  backgroundColor:
-                    currentTheme.soft,
+                  color:
+                    currentTheme.text,
                 },
               ]}
             >
-              <TouchableOpacity
-                style={[
-                  styles.languageOption,
-
-                  isJapanese && {
-                    backgroundColor:
-                      currentTheme.surface,
-                  },
-                ]}
-                onPress={() =>
-                  changeLanguage(
-                    'ja'
-                  )
-                }
-              >
-                <Text
-                  style={{
-                    color:
-                      isJapanese
-                        ? currentTheme.text
-                        : currentTheme.subText,
-
-                    fontWeight:
-                      isJapanese
-                        ? '700'
-                        : '400',
-                  }}
-                >
-                  日
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.languageOption,
-
-                  !isJapanese && {
-                    backgroundColor:
-                      currentTheme.surface,
-                  },
-                ]}
-                onPress={() =>
-                  changeLanguage(
-                    'en'
-                  )
-                }
-              >
-                <Text
-                  style={{
-                    color:
-                      !isJapanese
-                        ? currentTheme.text
-                        : currentTheme.subText,
-
-                    fontWeight:
-                      !isJapanese
-                        ? '700'
-                        : '400',
-                  }}
-                >
-                  EN
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.themeButton,
-
-                {
-                  backgroundColor:
-                    currentTheme.soft,
-                },
-              ]}
-              onPress={() =>
-                setThemeModalVisible(
-                  true
-                )
-              }
-            >
-              <View
-                style={[
-                  styles.themePreview,
-
-                  {
-                    backgroundColor:
-                      currentTheme.accent,
-                  },
-                ]}
-              />
-            </TouchableOpacity>
-          </View>
+              ⚙
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Projects */}
+        {/* Project list */}
         <ScrollView
-          style={styles.projectList}
+          style={
+            styles.projectList
+          }
           contentContainerStyle={
             styles.projectListContent
           }
@@ -525,7 +412,6 @@ export default function ProjectListScreen() {
                 key={project.id}
                 style={[
                   styles.projectCard,
-
                   {
                     backgroundColor:
                       currentTheme.surface,
@@ -556,7 +442,6 @@ export default function ProjectListScreen() {
                     <Text
                       style={[
                         styles.projectName,
-
                         {
                           color:
                             currentTheme.text,
@@ -569,7 +454,6 @@ export default function ProjectListScreen() {
                     <Text
                       style={[
                         styles.projectCount,
-
                         {
                           color:
                             currentTheme.subText,
@@ -586,7 +470,6 @@ export default function ProjectListScreen() {
                       <Text
                         style={[
                           styles.projectMemo,
-
                           {
                             color:
                               currentTheme.subText,
@@ -596,9 +479,7 @@ export default function ProjectListScreen() {
                           1
                         }
                       >
-                        {
-                          project.memo
-                        }
+                        {project.memo}
                       </Text>
                     )}
                   </View>
@@ -617,7 +498,6 @@ export default function ProjectListScreen() {
                   <Text
                     style={[
                       styles.editButtonText,
-
                       {
                         color:
                           currentTheme.text,
@@ -638,12 +518,12 @@ export default function ProjectListScreen() {
           />
         </ScrollView>
 
+        {/* Add */}
         {appData.projects.length <
           5 && (
           <TouchableOpacity
             style={[
               styles.addButton,
-
               {
                 backgroundColor:
                   currentTheme.accent,
@@ -656,7 +536,6 @@ export default function ProjectListScreen() {
             <Text
               style={[
                 styles.addButtonText,
-
                 {
                   color:
                     currentTheme.text,
@@ -704,7 +583,6 @@ export default function ProjectListScreen() {
                   <View
                     style={[
                       styles.modalContent,
-
                       {
                         backgroundColor:
                           currentTheme.surface,
@@ -748,10 +626,8 @@ export default function ProjectListScreen() {
                           {
                             color:
                               currentTheme.text,
-
                             backgroundColor:
                               currentTheme.surface,
-
                             borderColor:
                               currentTheme.border,
                           },
@@ -791,14 +667,11 @@ export default function ProjectListScreen() {
                         style={[
                           styles.input,
                           styles.memoInput,
-
                           {
                             color:
                               currentTheme.text,
-
                             backgroundColor:
                               currentTheme.surface,
-
                             borderColor:
                               currentTheme.border,
                           },
@@ -826,7 +699,6 @@ export default function ProjectListScreen() {
                         <TouchableOpacity
                           style={[
                             styles.cancelButton,
-
                             {
                               backgroundColor:
                                 currentTheme.soft,
@@ -840,7 +712,6 @@ export default function ProjectListScreen() {
                             style={{
                               color:
                                 currentTheme.text,
-
                               fontWeight:
                                 '600',
                             }}
@@ -854,7 +725,6 @@ export default function ProjectListScreen() {
                         <TouchableOpacity
                           style={[
                             styles.createButton,
-
                             {
                               backgroundColor:
                                 currentTheme.accent,
@@ -876,7 +746,6 @@ export default function ProjectListScreen() {
                             style={{
                               color:
                                 currentTheme.text,
-
                               fontWeight:
                                 '700',
                             }}
@@ -931,7 +800,6 @@ export default function ProjectListScreen() {
                   <View
                     style={[
                       styles.modalContent,
-
                       {
                         backgroundColor:
                           currentTheme.surface,
@@ -944,7 +812,6 @@ export default function ProjectListScreen() {
                       <Text
                         style={[
                           styles.modalTitle,
-
                           {
                             color:
                               currentTheme.text,
@@ -959,7 +826,6 @@ export default function ProjectListScreen() {
                       <Text
                         style={[
                           styles.label,
-
                           {
                             color:
                               currentTheme.text,
@@ -974,14 +840,11 @@ export default function ProjectListScreen() {
                       <TextInput
                         style={[
                           styles.input,
-
                           {
                             color:
                               currentTheme.text,
-
                             borderColor:
                               currentTheme.border,
-
                             backgroundColor:
                               currentTheme.surface,
                           },
@@ -997,7 +860,6 @@ export default function ProjectListScreen() {
                       <Text
                         style={[
                           styles.label,
-
                           {
                             color:
                               currentTheme.text,
@@ -1013,14 +875,11 @@ export default function ProjectListScreen() {
                         style={[
                           styles.input,
                           styles.memoInput,
-
                           {
                             color:
                               currentTheme.text,
-
                             borderColor:
                               currentTheme.border,
-
                             backgroundColor:
                               currentTheme.surface,
                           },
@@ -1050,7 +909,6 @@ export default function ProjectListScreen() {
                         <TouchableOpacity
                           style={[
                             styles.cancelButton,
-
                             {
                               backgroundColor:
                                 currentTheme.soft,
@@ -1064,7 +922,6 @@ export default function ProjectListScreen() {
                             style={{
                               color:
                                 currentTheme.text,
-
                               fontWeight:
                                 '600',
                             }}
@@ -1078,7 +935,6 @@ export default function ProjectListScreen() {
                         <TouchableOpacity
                           style={[
                             styles.createButton,
-
                             {
                               backgroundColor:
                                 currentTheme.accent,
@@ -1100,7 +956,6 @@ export default function ProjectListScreen() {
                             style={{
                               color:
                                 currentTheme.text,
-
                               fontWeight:
                                 '700',
                             }}
@@ -1115,7 +970,6 @@ export default function ProjectListScreen() {
                       <TouchableOpacity
                         style={[
                           styles.deleteButton,
-
                           {
                             backgroundColor:
                               currentTheme.dangerBackground,
@@ -1129,7 +983,6 @@ export default function ProjectListScreen() {
                           style={{
                             color:
                               currentTheme.dangerText,
-
                             fontWeight:
                               '700',
                           }}
@@ -1146,172 +999,6 @@ export default function ProjectListScreen() {
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
         </Modal>
-
-        {/* Theme modal */}
-        <Modal
-          visible={
-            themeModalVisible
-          }
-          transparent
-          animationType="fade"
-          onRequestClose={() =>
-            setThemeModalVisible(
-              false
-            )
-          }
-        >
-          <View
-            style={
-              styles.modalOverlay
-            }
-          >
-            <View
-              style={[
-                styles.themeModal,
-
-                {
-                  backgroundColor:
-                    currentTheme.surface,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.themeModalTitle,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {isJapanese
-                  ? 'テーマ'
-                  : 'Theme'}
-              </Text>
-
-              <View
-                style={
-                  styles.themeChoices
-                }
-              >
-                {themeNames.map(
-                  (themeName) => {
-                    const option =
-                      themes[
-                        themeName
-                      ];
-
-                    const selected =
-                      appData.theme ===
-                      themeName;
-
-                    return (
-                      <TouchableOpacity
-                        key={
-                          themeName
-                        }
-                        style={[
-                          styles.themeChoice,
-
-                          {
-                            borderColor:
-                              selected
-                                ? option.accent
-                                : currentTheme.border,
-
-                            backgroundColor:
-                              currentTheme.surface,
-                          },
-                        ]}
-                        onPress={() =>
-                          changeTheme(
-                            themeName
-                          )
-                        }
-                      >
-                        <View
-                          style={[
-                            styles.themeColorCircle,
-
-                            {
-                              backgroundColor:
-                                option.accent,
-                            },
-                          ]}
-                        />
-
-                        <Text
-                          style={[
-                            styles.themeChoiceText,
-
-                            {
-                              color:
-                                currentTheme.text,
-                            },
-                          ]}
-                        >
-                          {
-                            themeLabels[
-                              themeName
-                            ]
-                          }
-                        </Text>
-
-                        {selected && (
-                          <Text
-                            style={{
-                              color:
-                                currentTheme.text,
-
-                              fontSize:
-                                20,
-
-                              fontWeight:
-                                '700',
-                            }}
-                          >
-                            ✓
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  }
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.themeCloseButton,
-
-                  {
-                    backgroundColor:
-                      currentTheme.soft,
-                  },
-                ]}
-                onPress={() =>
-                  setThemeModalVisible(
-                    false
-                  )
-                }
-              >
-                <Text
-                  style={{
-                    color:
-                      currentTheme.text,
-
-                    fontWeight:
-                      '600',
-                  }}
-                >
-                  {isJapanese
-                    ? '閉じる'
-                    : 'Close'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -1327,9 +1014,9 @@ const styles =
 
     loadingContainer: {
       flex: 1,
+      alignItems: 'center',
       justifyContent:
         'center',
-      alignItems: 'center',
     },
 
     safeArea: {
@@ -1355,29 +1042,7 @@ const styles =
       fontWeight: '700',
     },
 
-    headerButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-
-    languageSwitch: {
-      flexDirection: 'row',
-      borderRadius: 22,
-      padding: 3,
-    },
-
-    languageOption: {
-      minWidth: 38,
-      height: 36,
-      paddingHorizontal: 8,
-      alignItems: 'center',
-      justifyContent:
-        'center',
-      borderRadius: 18,
-    },
-
-    themeButton: {
+    settingsButton: {
       width: 48,
       height: 48,
       borderRadius: 24,
@@ -1386,10 +1051,8 @@ const styles =
         'center',
     },
 
-    themePreview: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+    settingsIcon: {
+      fontSize: 25,
     },
 
     projectList: {
@@ -1544,52 +1207,6 @@ const styles =
     deleteButton: {
       marginTop: 28,
       minHeight: 50,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent:
-        'center',
-    },
-
-    themeModal: {
-      borderRadius: 28,
-      padding: 24,
-    },
-
-    themeModalTitle: {
-      fontSize: 26,
-      fontWeight: '700',
-      marginBottom: 22,
-    },
-
-    themeChoices: {
-      gap: 10,
-    },
-
-    themeChoice: {
-      minHeight: 58,
-      borderWidth: 2,
-      borderRadius: 18,
-      paddingHorizontal: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-
-    themeColorCircle: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      marginRight: 14,
-    },
-
-    themeChoiceText: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '600',
-    },
-
-    themeCloseButton: {
-      minHeight: 52,
-      marginTop: 20,
       borderRadius: 18,
       alignItems: 'center',
       justifyContent:
