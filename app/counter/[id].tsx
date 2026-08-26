@@ -1,3 +1,5 @@
+import EvilIcons from '@expo/vector-icons/EvilIcons';
+
 import {
   router,
   useFocusEffect,
@@ -64,10 +66,10 @@ export default function CounterScreen() {
 
   const counterUnitSize =
     isSmallScreen
-      ? 15
+      ? 21
       : isTablet
-        ? 22
-        : 18;
+        ? 30
+        : 26;
 
   const plusTextSize =
     isSmallScreen
@@ -79,22 +81,34 @@ export default function CounterScreen() {
   const nextButtonHeight =
     isSmallScreen ? 36 : 42;
 
-  const landscapeLeftWidth = '20%';
+  const landscapeLeftWidth =
+    '20%';
 
   const recentHistoryScrollRef =
-    useRef<ScrollView | null>(null);
+    useRef<ScrollView | null>(
+      null
+    );
 
   const fullHistoryScrollRef =
-    useRef<ScrollView | null>(null);
+    useRef<ScrollView | null>(
+      null
+    );
 
   const [project, setProject] =
-    useState<Project | null>(null);
+    useState<Project | null>(
+      null
+    );
 
   const [language, setLanguage] =
     useState<Language>('ja');
 
-  const [themeName, setThemeName] =
-    useState<keyof typeof themes>('pink');
+  const [
+    themeName,
+    setThemeName,
+  ] =
+    useState<
+      keyof typeof themes
+    >('pink');
 
   const [
     historyModalVisible,
@@ -133,9 +147,17 @@ export default function CounterScreen() {
           ) ?? null;
 
         if (active) {
-          setProject(savedProject);
-          setLanguage(data.language);
-          setThemeName(data.theme);
+          setProject(
+            savedProject
+          );
+
+          setLanguage(
+            data.language
+          );
+
+          setThemeName(
+            data.theme
+          );
         }
       };
 
@@ -194,22 +216,25 @@ export default function CounterScreen() {
     ],
   });
 
-  const removePausedHistory = (
-    history: HistoryItem[]
-  ) => {
-    const nextHistory = [
-      ...history,
-    ];
+  const removePausedHistory =
+    (
+      history: HistoryItem[]
+    ) => {
+      const nextHistory = [
+        ...history,
+      ];
 
-    while (
-      nextHistory.length > 0 &&
-      nextHistory[0].type === 'mark'
-    ) {
-      nextHistory.shift();
-    }
+      while (
+        nextHistory.length >
+          0 &&
+        nextHistory[0].type ===
+          'mark'
+      ) {
+        nextHistory.shift();
+      }
 
-    return nextHistory;
-  };
+      return nextHistory;
+    };
 
   const addRow = async () => {
     const previous =
@@ -225,12 +250,14 @@ export default function CounterScreen() {
           history
         );
 
-      const item: HistoryItem = {
-        id: `${Date.now()}-${Math.random()}`,
-        row: project.row,
-        stitch: project.stitch,
-        type: 'row',
-      };
+      const item: HistoryItem =
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          row: project.row,
+          stitch:
+            project.stitch,
+          type: 'row',
+        };
 
       history = [
         item,
@@ -240,7 +267,8 @@ export default function CounterScreen() {
 
     await persistProject({
       ...project,
-      row: project.row + 1,
+      row:
+        project.row + 1,
       stitch: 0,
       history,
       undoStack: [
@@ -250,20 +278,21 @@ export default function CounterScreen() {
     });
   };
 
-  const addStitch = async () => {
-    const previous =
-      saveUndo(project);
+  const addStitch =
+    async () => {
+      const previous =
+        saveUndo(project);
 
-    await persistProject({
-      ...project,
-      stitch:
-        project.stitch + 1,
-      undoStack: [
-        ...project.undoStack,
-        previous,
-      ],
-    });
-  };
+      await persistProject({
+        ...project,
+        stitch:
+          project.stitch + 1,
+        undoStack: [
+          ...project.undoStack,
+          previous,
+        ],
+      });
+    };
 
   const startNewRow =
     async () => {
@@ -274,7 +303,9 @@ export default function CounterScreen() {
         ...project.history,
       ];
 
-      if (project.stitch > 0) {
+      if (
+        project.stitch > 0
+      ) {
         history =
           removePausedHistory(
             history
@@ -314,7 +345,9 @@ export default function CounterScreen() {
         ...project.history,
       ];
 
-      if (project.stitch > 0) {
+      if (
+        project.stitch > 0
+      ) {
         history =
           removePausedHistory(
             history
@@ -344,34 +377,37 @@ export default function CounterScreen() {
       });
     };
 
-  const addMark = async () => {
-    const previous =
-      saveUndo(project);
+  const addMark =
+    async () => {
+      const previous =
+        saveUndo(project);
 
-    const history =
-      removePausedHistory(
-        project.history
-      );
+      const history =
+        removePausedHistory(
+          project.history
+        );
 
-    const item: HistoryItem = {
-      id: `${Date.now()}-${Math.random()}`,
-      row: project.row,
-      stitch: project.stitch,
-      type: 'mark',
+      const item: HistoryItem =
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          row: project.row,
+          stitch:
+            project.stitch,
+          type: 'mark',
+        };
+
+      await persistProject({
+        ...project,
+        history: [
+          item,
+          ...history,
+        ],
+        undoStack: [
+          ...project.undoStack,
+          previous,
+        ],
+      });
     };
-
-    await persistProject({
-      ...project,
-      history: [
-        item,
-        ...history,
-      ],
-      undoStack: [
-        ...project.undoStack,
-        previous,
-      ],
-    });
-  };
 
   const undo = async () => {
     if (
@@ -389,7 +425,8 @@ export default function CounterScreen() {
 
     await persistProject({
       ...project,
-      row: previous.row,
+      row:
+        previous.row,
       stitch:
         previous.stitch,
       history:
@@ -409,10 +446,7 @@ export default function CounterScreen() {
       );
 
       setMemoEditing(false);
-
-      setMemoModalVisible(
-        true
-      );
+      setMemoModalVisible(true);
     };
 
   const startMemoEditing =
@@ -450,10 +484,7 @@ export default function CounterScreen() {
       );
 
       setMemoEditing(false);
-
-      setMemoModalVisible(
-        false
-      );
+      setMemoModalVisible(false);
     };
 
   const openHistoryModal =
@@ -478,79 +509,80 @@ export default function CounterScreen() {
       ].reverse();
     }, [project.history]);
 
-  const renderHistoryItem = (
-    item: HistoryItem,
-    isNewest: boolean
-  ) => {
-    return (
-      <View
-        key={item.id}
-        style={
-          styles.historyRow
-        }
-      >
+  const renderHistoryItem =
+    (
+      item: HistoryItem,
+      isNewest: boolean
+    ) => {
+      return (
         <View
+          key={item.id}
           style={
-            styles.historyLeft
+            styles.historyRow
           }
         >
-          <Text
-            style={[
-              styles.historyCountText,
-              {
-                color:
-                  currentTheme.text,
-              },
-            ]}
-            numberOfLines={1}
+          <View
+            style={
+              styles.historyLeft
+            }
           >
-            {isJapanese
-              ? `${item.row}段 ${item.stitch}目`
-              : `${item.row} Row ${item.stitch} Stitches`}
-          </Text>
-
-          {item.type ===
-            'mark' && (
-            <View
+            <Text
               style={[
-                styles.pausedBadge,
+                styles.historyCountText,
                 {
-                  backgroundColor:
-                    currentTheme.soft,
+                  color:
+                    currentTheme.text,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {isJapanese
+                ? `${item.row}段 ${item.stitch}目`
+                : `${item.row} Row ${item.stitch} Stitches`}
+            </Text>
+
+            {item.type ===
+              'mark' && (
+              <View
+                style={[
+                  styles.pausedBadge,
+                  {
+                    backgroundColor:
+                      currentTheme.soft,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color:
+                      currentTheme.text,
+                    fontSize: 10,
+                  }}
+                >
+                  {isJapanese
+                    ? '途中'
+                    : 'Paused'}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {isNewest && (
+            <Text
+              style={[
+                styles.newLabel,
+                {
+                  color:
+                    currentTheme.accent,
                 },
               ]}
             >
-              <Text
-                style={{
-                  color:
-                    currentTheme.text,
-                  fontSize: 10,
-                }}
-              >
-                {isJapanese
-                  ? '途中'
-                  : 'Paused'}
-              </Text>
-            </View>
+              NEW
+            </Text>
           )}
         </View>
-
-        {isNewest && (
-          <Text
-            style={[
-              styles.newLabel,
-              {
-                color:
-                  currentTheme.accent,
-              },
-            ]}
-          >
-            NEW
-          </Text>
-        )}
-      </View>
-    );
-  };
+      );
+    };
 
   const renderHistory =
     (
@@ -757,28 +789,21 @@ export default function CounterScreen() {
       </View>
     );
 
-  const renderActions =
-    (
-      landscape = false
-    ) => (
+  const renderPortraitActions =
+    () => (
       <View
-        style={[
-          styles.actionRow,
-
-          landscape &&
-            styles.actionRowLandscape,
-        ]}
+        style={
+          styles.actionRow
+        }
       >
         <TouchableOpacity
           style={[
             styles.markButton,
-
-            landscape &&
-              styles.markButtonLandscape,
-
             {
               backgroundColor:
                 currentTheme.soft,
+              borderColor:
+                currentTheme.accent,
             },
           ]}
           activeOpacity={0.8}
@@ -787,10 +812,6 @@ export default function CounterScreen() {
           <Text
             style={[
               styles.markButtonText,
-
-              landscape &&
-                styles.markButtonTextLandscape,
-
               {
                 color:
                   currentTheme.text,
@@ -807,13 +828,13 @@ export default function CounterScreen() {
         <TouchableOpacity
           style={[
             styles.undoButton,
-
-            landscape &&
-              styles.undoButtonLandscape,
+            styles.undoButtonRight,
 
             {
               backgroundColor:
                 currentTheme.soft,
+              borderColor:
+                currentTheme.accent,
             },
 
             project.undoStack
@@ -827,20 +848,95 @@ export default function CounterScreen() {
               .length === 0
           }
         >
+          <EvilIcons
+            name="undo"
+            size={34}
+            color={
+              currentTheme.text
+            }
+          />
+        </TouchableOpacity>
+      </View>
+    );
+
+  const renderLandscapeUndo =
+    () => (
+      <View
+        style={
+          styles.landscapeUndoBox
+        }
+      >
+        <TouchableOpacity
+          style={[
+            styles.undoButton,
+            styles.undoButtonLandscape,
+
+            {
+              backgroundColor:
+                currentTheme.soft,
+              borderColor:
+                currentTheme.accent,
+            },
+
+            project.undoStack
+              .length === 0 &&
+              styles.undoDisabled,
+          ]}
+          activeOpacity={0.8}
+          onPress={undo}
+          disabled={
+            project.undoStack
+              .length === 0
+          }
+        >
+          <EvilIcons
+            name="undo"
+            size={34}
+            color={
+              currentTheme.text
+            }
+          />
+        </TouchableOpacity>
+      </View>
+    );
+
+  const renderLandscapeMark =
+    () => (
+      <View
+        style={
+          styles.landscapeMarkBox
+        }
+      >
+        <TouchableOpacity
+          style={[
+            styles.markButton,
+            styles.markButtonLandscape,
+
+            {
+              backgroundColor:
+                currentTheme.soft,
+              borderColor:
+                currentTheme.accent,
+            },
+          ]}
+          activeOpacity={0.8}
+          onPress={addMark}
+        >
           <Text
             style={[
-              styles.undoText,
-
-              landscape &&
-                styles.undoTextLandscape,
+              styles.markButtonText,
+              styles.markButtonTextLandscape,
 
               {
                 color:
                   currentTheme.text,
               },
             ]}
+            numberOfLines={1}
           >
-            ↶
+            {isJapanese
+              ? '途中を記録'
+              : 'Save Progress'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -890,7 +986,7 @@ export default function CounterScreen() {
           >
             <View
               style={
-                styles.counterValueRow
+                styles.counterValueCenter
               }
             >
               <Text
@@ -919,7 +1015,7 @@ export default function CounterScreen() {
 
               <Text
                 style={[
-                  styles.counterUnit,
+                  styles.counterUnitAbsolute,
 
                   landscape &&
                     styles.counterUnitLandscape,
@@ -942,6 +1038,7 @@ export default function CounterScreen() {
             <TouchableOpacity
               style={[
                 styles.nextButton,
+                styles.nextButtonRight,
 
                 landscape &&
                   styles.nextButtonLandscape,
@@ -954,6 +1051,8 @@ export default function CounterScreen() {
                 {
                   backgroundColor:
                     currentTheme.soft,
+                  borderColor:
+                    currentTheme.accent,
                 },
               ]}
               activeOpacity={0.7}
@@ -972,7 +1071,7 @@ export default function CounterScreen() {
 
                   {
                     color:
-                      currentTheme.subText,
+                      currentTheme.text,
                   },
                 ]}
               >
@@ -985,8 +1084,16 @@ export default function CounterScreen() {
             style={[
               styles.plusButton,
 
+              !landscape &&
+                !isRow &&
+                styles.stitchPlusButton,
+
               landscape &&
                 styles.plusButtonLandscape,
+
+              landscape &&
+                !isRow &&
+                styles.stitchPlusButtonLandscape,
 
               {
                 backgroundColor:
@@ -1113,7 +1220,6 @@ export default function CounterScreen() {
               styles.portraitContent
             }
           >
-            {/* 必要な分だけ使う */}
             <View
               style={
                 styles.portraitTopArea
@@ -1124,7 +1230,7 @@ export default function CounterScreen() {
                   styles.portraitActionBox
                 }
               >
-                {renderActions()}
+                {renderPortraitActions()}
               </View>
 
               <View
@@ -1144,7 +1250,6 @@ export default function CounterScreen() {
               </View>
             </View>
 
-            {/* 残りを全部カウンターへ */}
             <View
               style={
                 styles.portraitCounters
@@ -1159,6 +1264,16 @@ export default function CounterScreen() {
                   'row'
                 )}
               </View>
+
+              <View
+                style={[
+                  styles.portraitDivider,
+                  {
+                    backgroundColor:
+                      currentTheme.border,
+                  },
+                ]}
+              />
 
               <View
                 style={
@@ -1189,35 +1304,29 @@ export default function CounterScreen() {
                 },
               ]}
             >
-              <View
-                style={
-                  styles.landscapeActionBox
-                }
-              >
-                {renderActions(
-                  true
-                )}
-              </View>
+              {/* 1. Undo */}
+              {renderLandscapeUndo()}
 
+              {/* 2. メモ */}
               <View
                 style={
                   styles.landscapeMemoBox
                 }
               >
-                {renderMemo(
-                  true
-                )}
+                {renderMemo(true)}
               </View>
 
+              {/* 3. 履歴 */}
               <View
                 style={
                   styles.landscapeHistoryBox
                 }
               >
-                {renderHistory(
-                  true
-                )}
+                {renderHistory(true)}
               </View>
+
+              {/* 4. 途中を記録 */}
+              {renderLandscapeMark()}
             </View>
 
             <View
@@ -1266,7 +1375,7 @@ export default function CounterScreen() {
           </View>
         )}
 
-        {/* メモ全文表示・編集 */}
+        {/* メモモーダル */}
         <Modal
           visible={
             memoModalVisible
@@ -1524,7 +1633,7 @@ export default function CounterScreen() {
           </KeyboardAvoidingView>
         </Modal>
 
-        {/* 全履歴 */}
+        {/* 全履歴モーダル */}
         <Modal
           visible={
             historyModalVisible
@@ -1621,7 +1730,8 @@ export default function CounterScreen() {
                     fullHistoryScrollRef
                       .current
                       ?.scrollToEnd({
-                        animated: false,
+                        animated:
+                          false,
                       });
                   }
                 }}
@@ -1797,10 +1907,6 @@ const styles =
       width: 44,
     },
 
-    /*
-     * 縦画面
-     * 上部を割合ではなく必要な高さだけ使う
-     */
     portraitContent: {
       flex: 1,
       minHeight: 0,
@@ -1817,25 +1923,16 @@ const styles =
       height: 44,
     },
 
-    /*
-     * メモ本文が約1行見える高さ
-     */
     portraitMemoBox: {
       height: 58,
       minHeight: 58,
     },
 
-    /*
-     * 最近の履歴が約2行見える高さ
-     */
     portraitHistoryBox: {
       height: 78,
       minHeight: 78,
     },
 
-    /*
-     * 残りを全部カウンターへ
-     */
     portraitCounters: {
       flex: 1,
       minHeight: 0,
@@ -1845,6 +1942,11 @@ const styles =
     portraitCounterItem: {
       flex: 1,
       minHeight: 0,
+    },
+
+    portraitDivider: {
+      height: 1,
+      width: '100%',
     },
 
     sectionTitle: {
@@ -1862,49 +1964,49 @@ const styles =
       lineHeight: 23,
     },
 
+    /*
+     * 縦画面
+     * 「途中を記録」は中央
+     * Undoは右端
+     */
     actionRow: {
       flex: 1,
-      flexDirection: 'row',
+      position: 'relative',
+      alignItems: 'center',
       justifyContent:
         'center',
-      alignItems: 'center',
-      gap: 12,
-    },
-
-    actionRowLandscape: {
-      width: '100%',
-      gap: 6,
     },
 
     markButton: {
-      minWidth: 135,
+      minWidth: 145,
       height: '90%',
       maxHeight: 46,
-      paddingHorizontal: 14,
-      borderRadius: 18,
+      paddingHorizontal: 18,
+      borderRadius: 999,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
     markButtonLandscape: {
-      flex: 1,
-      minWidth: 0,
+      minWidth: 145,
       height: 44,
-      paddingHorizontal: 4,
-      borderRadius: 16,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
     markButtonText: {
-      fontWeight: '600',
-      fontSize: 13,
+      fontSize: 16,
+      fontWeight: '700',
     },
 
     markButtonTextLandscape: {
-      fontSize: 12,
+      fontSize: 16,
       fontWeight: '700',
     },
 
@@ -1913,28 +2015,27 @@ const styles =
       maxHeight: 46,
       aspectRatio: 1,
       borderRadius: 23,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
+    undoButtonRight: {
+      position: 'absolute',
+      right: 0,
+    },
+
     undoButtonLandscape: {
       width: 44,
       height: 44,
+      maxHeight: 44,
+      aspectRatio: 1,
       borderRadius: 22,
     },
 
     undoDisabled: {
       opacity: 0.4,
-    },
-
-    undoText: {
-      fontSize: 25,
-    },
-
-    undoTextLandscape: {
-      fontSize: 26,
-      lineHeight: 28,
     },
 
     memoArea: {
@@ -2075,25 +2176,25 @@ const styles =
     counterTopRow: {
       width: '82%',
       maxWidth: 340,
-      flexDirection: 'row',
+      position: 'relative',
       alignItems: 'center',
       justifyContent:
         'center',
-      gap: 10,
       marginBottom: 4,
     },
 
     counterTopRowLandscape: {
       width: '86%',
       maxWidth: 350,
-      gap: 12,
       marginBottom: 5,
     },
 
-    counterValueRow: {
-      flexDirection: 'row',
-      alignItems:
-        'flex-end',
+    counterValueCenter: {
+      width: '100%',
+      position: 'relative',
+      alignItems: 'center',
+      justifyContent:
+        'center',
     },
 
     counterNumber: {
@@ -2105,16 +2206,22 @@ const styles =
       lineHeight: 68,
     },
 
-    counterUnit: {
-      marginLeft: 5,
-      marginBottom: 6,
+    counterUnitAbsolute: {
+      position: 'absolute',
+      left: '50%',
+      marginLeft: 30,
+      bottom: 6,
     },
 
     counterUnitLandscape: {
-      fontSize: 17,
-      marginBottom: 7,
+      fontSize: 26,
+      marginLeft: 35,
+      bottom: 7,
     },
 
+    /*
+     * 段の＋
+     */
     plusButton: {
       flex: 1,
       minHeight: 56,
@@ -2127,6 +2234,22 @@ const styles =
         'center',
     },
 
+    /*
+     * 縦画面の目
+     * 大きめの楕円
+     */
+    stitchPlusButton: {
+      flex: 0,
+      width: 240,
+      height: 150,
+      minHeight: 150,
+      maxHeight: 150,
+      borderRadius: 999,
+    },
+
+    /*
+     * 横画面の段
+     */
     plusButtonLandscape: {
       flex: 1,
       minHeight: 95,
@@ -2134,6 +2257,20 @@ const styles =
       width: '86%',
       maxWidth: 350,
       borderRadius: 32,
+    },
+
+    /*
+     * 横画面の目
+     * 段と高さを揃えつつ、
+     * 幅を狭めて丸っぽい楕円にする
+     */
+    stitchPlusButtonLandscape: {
+      flex: 1,
+      width: '72%',
+      maxWidth: 240,
+      minHeight: 95,
+      maxHeight: 185,
+      borderRadius: 999,
     },
 
     plusText: {
@@ -2148,10 +2285,17 @@ const styles =
     nextButton: {
       minWidth: 58,
       borderRadius: 14,
+      borderWidth: 1,
       paddingHorizontal: 10,
       alignItems: 'center',
       justifyContent:
         'center',
+    },
+
+    nextButtonRight: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
     },
 
     nextButtonLandscape: {
@@ -2169,9 +2313,6 @@ const styles =
       fontSize: 20,
     },
 
-    /*
-     * 横画面
-     */
     landscapeContent: {
       flex: 1,
       minHeight: 0,
@@ -2181,30 +2322,42 @@ const styles =
       gap: 8,
     },
 
+    /*
+     * 横画面の左列
+     *
+     * Undo
+     * メモ
+     * 履歴
+     * 途中を記録
+     */
     landscapeLeft: {
       minWidth: 120,
       maxWidth: 260,
       gap: 5,
     },
 
-    landscapeActionBox: {
+    landscapeUndoBox: {
       height: 46,
+      alignItems: 'center',
+      justifyContent:
+        'center',
     },
 
-    /*
-     * 横メモも約1行分
-     */
     landscapeMemoBox: {
       height: 50,
       minHeight: 50,
     },
 
-    /*
-     * 横履歴は約2行分
-     */
     landscapeHistoryBox: {
       height: 78,
       minHeight: 78,
+    },
+
+    landscapeMarkBox: {
+      height: 46,
+      alignItems: 'center',
+      justifyContent:
+        'center',
     },
 
     landscapeMain: {
