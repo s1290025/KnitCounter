@@ -28,7 +28,6 @@ import {
 
 import {
   HistoryItem,
-  HistoryType,
   Language,
   loadAppData,
   Project,
@@ -42,17 +41,12 @@ export default function CounterScreen() {
     id: string;
   }>();
 
-  const { width, height } =
-    useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
-  const isLandscape =
-    width > height;
+  const isLandscape = width > height;
 
-  const shortSide =
-    Math.min(width, height);
-
-  const longSide =
-    Math.max(width, height);
+  const shortSide = Math.min(width, height);
+  const longSide = Math.max(width, height);
 
   const isSmallScreen =
     shortSide < 380 ||
@@ -60,18 +54,6 @@ export default function CounterScreen() {
 
   const isTablet =
     shortSide >= 600;
-
-  const actionHeight =
-    isSmallScreen ? 42 : 50;
-
-  const memoHeight =
-    isSmallScreen ? 78 : 92;
-
-  const historyHeight =
-    isSmallScreen ? 86 : 100;
-
-  const portraitGap =
-    isSmallScreen ? 5 : 8;
 
   const counterNumberSize =
     isSmallScreen
@@ -97,39 +79,22 @@ export default function CounterScreen() {
   const nextButtonHeight =
     isSmallScreen ? 36 : 42;
 
-  const landscapeLeftWidth =
-    isTablet ? '23%' : '26%';
+  const landscapeLeftWidth = '20%';
 
   const recentHistoryScrollRef =
-    useRef<ScrollView | null>(
-      null
-    );
+    useRef<ScrollView | null>(null);
 
   const fullHistoryScrollRef =
-    useRef<ScrollView | null>(
-      null
-    );
+    useRef<ScrollView | null>(null);
 
-  const [
-    project,
-    setProject,
-  ] = useState<Project | null>(
-    null
-  );
+  const [project, setProject] =
+    useState<Project | null>(null);
 
-  const [
-    language,
-    setLanguage,
-  ] =
+  const [language, setLanguage] =
     useState<Language>('ja');
 
-  const [
-    themeName,
-    setThemeName,
-  ] =
-    useState<
-      keyof typeof themes
-    >('pink');
+  const [themeName, setThemeName] =
+    useState<keyof typeof themes>('pink');
 
   const [
     historyModalVisible,
@@ -155,33 +120,24 @@ export default function CounterScreen() {
     useCallback(() => {
       let active = true;
 
-      const load =
-        async () => {
-          if (!id) return;
+      const load = async () => {
+        if (!id) return;
 
-          const data =
-            await loadAppData();
+        const data =
+          await loadAppData();
 
-          const savedProject =
-            data.projects.find(
-              (project) =>
-                project.id === id
-            ) ?? null;
+        const savedProject =
+          data.projects.find(
+            (project) =>
+              project.id === id
+          ) ?? null;
 
-          if (active) {
-            setProject(
-              savedProject
-            );
-
-            setLanguage(
-              data.language
-            );
-
-            setThemeName(
-              data.theme
-            );
-          }
-        };
+        if (active) {
+          setProject(savedProject);
+          setLanguage(data.language);
+          setThemeName(data.theme);
+        }
+      };
 
       load();
 
@@ -221,9 +177,7 @@ export default function CounterScreen() {
     async (
       nextProject: Project
     ) => {
-      setProject(
-        nextProject
-      );
+      setProject(nextProject);
 
       await updateProject(
         nextProject
@@ -234,8 +188,7 @@ export default function CounterScreen() {
     current: Project
   ) => ({
     row: current.row,
-    stitch:
-      current.stitch,
+    stitch: current.stitch,
     history: [
       ...current.history,
     ],
@@ -250,8 +203,7 @@ export default function CounterScreen() {
 
     while (
       nextHistory.length > 0 &&
-      nextHistory[0].type ===
-        'mark'
+      nextHistory[0].type === 'mark'
     ) {
       nextHistory.shift();
     }
@@ -259,67 +211,59 @@ export default function CounterScreen() {
     return nextHistory;
   };
 
-  const addRow =
-    async () => {
-      const previous =
-        saveUndo(project);
+  const addRow = async () => {
+    const previous =
+      saveUndo(project);
 
-      let history = [
-        ...project.history,
+    let history = [
+      ...project.history,
+    ];
+
+    if (project.stitch > 0) {
+      history =
+        removePausedHistory(
+          history
+        );
+
+      const item: HistoryItem = {
+        id: `${Date.now()}-${Math.random()}`,
+        row: project.row,
+        stitch: project.stitch,
+        type: 'row',
+      };
+
+      history = [
+        item,
+        ...history,
       ];
+    }
 
-      if (
-        project.stitch > 0
-      ) {
-        history =
-          removePausedHistory(
-            history
-          );
+    await persistProject({
+      ...project,
+      row: project.row + 1,
+      stitch: 0,
+      history,
+      undoStack: [
+        ...project.undoStack,
+        previous,
+      ],
+    });
+  };
 
-        const item:
-          HistoryItem = {
-          id: `${Date.now()}-${Math.random()}`,
-          row:
-            project.row,
-          stitch:
-            project.stitch,
-          type: 'row',
-        };
+  const addStitch = async () => {
+    const previous =
+      saveUndo(project);
 
-        history = [
-          item,
-          ...history,
-        ];
-      }
-
-      await persistProject({
-        ...project,
-        row:
-          project.row + 1,
-        stitch: 0,
-        history,
-        undoStack: [
-          ...project.undoStack,
-          previous,
-        ],
-      });
-    };
-
-  const addStitch =
-    async () => {
-      const previous =
-        saveUndo(project);
-
-      await persistProject({
-        ...project,
-        stitch:
-          project.stitch + 1,
-        undoStack: [
-          ...project.undoStack,
-          previous,
-        ],
-      });
-    };
+    await persistProject({
+      ...project,
+      stitch:
+        project.stitch + 1,
+      undoStack: [
+        ...project.undoStack,
+        previous,
+      ],
+    });
+  };
 
   const startNewRow =
     async () => {
@@ -330,9 +274,7 @@ export default function CounterScreen() {
         ...project.history,
       ];
 
-      if (
-        project.stitch > 0
-      ) {
+      if (project.stitch > 0) {
         history =
           removePausedHistory(
             history
@@ -341,8 +283,7 @@ export default function CounterScreen() {
         history = [
           {
             id: `${Date.now()}-${Math.random()}`,
-            row:
-              project.row,
+            row: project.row,
             stitch:
               project.stitch,
             type:
@@ -373,9 +314,7 @@ export default function CounterScreen() {
         ...project.history,
       ];
 
-      if (
-        project.stitch > 0
-      ) {
+      if (project.stitch > 0) {
         history =
           removePausedHistory(
             history
@@ -384,8 +323,7 @@ export default function CounterScreen() {
         history = [
           {
             id: `${Date.now()}-${Math.random()}`,
-            row:
-              project.row,
+            row: project.row,
             stitch:
               project.stitch,
             type:
@@ -406,69 +344,63 @@ export default function CounterScreen() {
       });
     };
 
-  const addMark =
-    async () => {
-      const previous =
-        saveUndo(project);
+  const addMark = async () => {
+    const previous =
+      saveUndo(project);
 
-      const history =
-        removePausedHistory(
-          project.history
-        );
+    const history =
+      removePausedHistory(
+        project.history
+      );
 
-      const item:
-        HistoryItem = {
-        id: `${Date.now()}-${Math.random()}`,
-        row:
-          project.row,
-        stitch:
-          project.stitch,
-        type: 'mark',
-      };
-
-      await persistProject({
-        ...project,
-        history: [
-          item,
-          ...history,
-        ],
-        undoStack: [
-          ...project.undoStack,
-          previous,
-        ],
-      });
+    const item: HistoryItem = {
+      id: `${Date.now()}-${Math.random()}`,
+      row: project.row,
+      stitch: project.stitch,
+      type: 'mark',
     };
 
-  const undo =
-    async () => {
-      if (
+    await persistProject({
+      ...project,
+      history: [
+        item,
+        ...history,
+      ],
+      undoStack: [
+        ...project.undoStack,
+        previous,
+      ],
+    });
+  };
+
+  const undo = async () => {
+    if (
+      project.undoStack
+        .length === 0
+    ) {
+      return;
+    }
+
+    const previous =
+      project.undoStack[
         project.undoStack
-          .length === 0
-      ) {
-        return;
-      }
+          .length - 1
+      ];
 
-      const previous =
-        project.undoStack[
-          project.undoStack
-            .length - 1
-        ];
-
-      await persistProject({
-        ...project,
-        row:
-          previous.row,
-        stitch:
-          previous.stitch,
-        history:
-          previous.history,
-        undoStack:
-          project.undoStack.slice(
-            0,
-            -1
-          ),
-      });
-    };
+    await persistProject({
+      ...project,
+      row: previous.row,
+      stitch:
+        previous.stitch,
+      history:
+        previous.history,
+      undoStack:
+        project.undoStack.slice(
+          0,
+          -1
+        ),
+    });
+  };
 
   const openMemoViewer =
     () => {
@@ -545,31 +477,6 @@ export default function CounterScreen() {
         ...project.history,
       ].reverse();
     }, [project.history]);
-
-  const getHistoryTypeLabel =
-    (
-      type: HistoryType
-    ) => {
-      if (
-        type === 'mark'
-      ) {
-        return isJapanese
-          ? '途中'
-          : 'Paused';
-      }
-
-      if (
-        type === 'row'
-      ) {
-        return isJapanese
-          ? '段'
-          : 'Row';
-      }
-
-      return isJapanese
-        ? '目'
-        : 'Stitch';
-    };
 
   const renderHistoryItem = (
     item: HistoryItem,
@@ -1199,43 +1106,45 @@ export default function CounterScreen() {
           />
         </View>
 
+        {/* 縦画面 */}
         {!isLandscape && (
           <View
-            style={[
-              styles.portraitContent,
-              {
-                gap:
-                  portraitGap,
-              },
-            ]}
+            style={
+              styles.portraitContent
+            }
           >
+            {/* 必要な分だけ使う */}
             <View
-              style={{
-                height:
-                  actionHeight,
-              }}
+              style={
+                styles.portraitTopArea
+              }
             >
-              {renderActions()}
+              <View
+                style={
+                  styles.portraitActionBox
+                }
+              >
+                {renderActions()}
+              </View>
+
+              <View
+                style={
+                  styles.portraitMemoBox
+                }
+              >
+                {renderMemo()}
+              </View>
+
+              <View
+                style={
+                  styles.portraitHistoryBox
+                }
+              >
+                {renderHistory()}
+              </View>
             </View>
 
-            <View
-              style={{
-                height:
-                  memoHeight,
-              }}
-            >
-              {renderMemo()}
-            </View>
-
-            <View
-              style={{
-                height:
-                  historyHeight,
-              }}
-            >
-              {renderHistory()}
-            </View>
-
+            {/* 残りを全部カウンターへ */}
             <View
               style={
                 styles.portraitCounters
@@ -1264,6 +1173,7 @@ export default function CounterScreen() {
           </View>
         )}
 
+        {/* 横画面 */}
         {isLandscape && (
           <View
             style={
@@ -1356,6 +1266,7 @@ export default function CounterScreen() {
           </View>
         )}
 
+        {/* メモ全文表示・編集 */}
         <Modal
           visible={
             memoModalVisible
@@ -1613,6 +1524,7 @@ export default function CounterScreen() {
           </KeyboardAvoidingView>
         </Modal>
 
+        {/* 全履歴 */}
         <Modal
           visible={
             historyModalVisible
@@ -1755,23 +1667,6 @@ export default function CounterScreen() {
                               ? `${item.row}段 ${item.stitch}目`
                               : `${item.row} Row ${item.stitch} Stitches`}
                           </Text>
-
-                          {item.type !==
-                            'mark' && (
-                            <Text
-                              style={[
-                                styles.fullHistoryType,
-                                {
-                                  color:
-                                    currentTheme.subText,
-                                },
-                              ]}
-                            >
-                              {getHistoryTypeLabel(
-                                item.type
-                              )}
-                            </Text>
-                          )}
                         </View>
 
                         <View
@@ -1886,12 +1781,12 @@ const styles =
     projectName: {
       flex: 1,
       textAlign: 'center',
-      fontSize: 21,
+      fontSize: 17,
       fontWeight: '700',
     },
 
     projectNameSmall: {
-      fontSize: 18,
+      fontSize: 15,
     },
 
     projectNameLandscape: {
@@ -1902,13 +1797,45 @@ const styles =
       width: 44,
     },
 
+    /*
+     * 縦画面
+     * 上部を割合ではなく必要な高さだけ使う
+     */
     portraitContent: {
       flex: 1,
       minHeight: 0,
       paddingHorizontal: 16,
       paddingBottom: 6,
+      gap: 6,
     },
 
+    portraitTopArea: {
+      gap: 5,
+    },
+
+    portraitActionBox: {
+      height: 44,
+    },
+
+    /*
+     * メモ本文が約1行見える高さ
+     */
+    portraitMemoBox: {
+      height: 58,
+      minHeight: 58,
+    },
+
+    /*
+     * 最近の履歴が約2行見える高さ
+     */
+    portraitHistoryBox: {
+      height: 78,
+      minHeight: 78,
+    },
+
+    /*
+     * 残りを全部カウンターへ
+     */
     portraitCounters: {
       flex: 1,
       minHeight: 0,
@@ -1926,7 +1853,8 @@ const styles =
     },
 
     sectionTitleLandscape: {
-      fontSize: 13,
+      fontSize: 16,
+      fontWeight: '700',
     },
 
     openArrow: {
@@ -1945,7 +1873,7 @@ const styles =
 
     actionRowLandscape: {
       width: '100%',
-      gap: 7,
+      gap: 6,
     },
 
     markButton: {
@@ -1963,7 +1891,7 @@ const styles =
       flex: 1,
       minWidth: 0,
       height: 44,
-      paddingHorizontal: 6,
+      paddingHorizontal: 4,
       borderRadius: 16,
       alignItems: 'center',
       justifyContent:
@@ -2014,16 +1942,16 @@ const styles =
       minHeight: 0,
       borderRadius: 17,
       paddingHorizontal: 13,
-      paddingTop: 8,
-      paddingBottom: 6,
+      paddingTop: 6,
+      paddingBottom: 5,
       borderWidth: 1,
     },
 
     memoAreaLandscape: {
       borderRadius: 13,
-      paddingHorizontal: 9,
-      paddingTop: 6,
-      paddingBottom: 5,
+      paddingHorizontal: 8,
+      paddingTop: 4,
+      paddingBottom: 3,
     },
 
     memoHeader: {
@@ -2036,21 +1964,21 @@ const styles =
     memoPreviewScroll: {
       flex: 1,
       minHeight: 0,
-      marginTop: 3,
+      marginTop: 1,
     },
 
     memoPreviewContent: {
-      paddingBottom: 4,
+      paddingBottom: 2,
     },
 
     memoText: {
-      fontSize: 13,
-      lineHeight: 19,
+      fontSize: 15,
+      lineHeight: 20,
       paddingRight: 3,
     },
 
     memoTextLandscape: {
-      fontSize: 13,
+      fontSize: 15,
       lineHeight: 18,
       paddingRight: 3,
     },
@@ -2060,16 +1988,16 @@ const styles =
       minHeight: 0,
       borderRadius: 17,
       paddingHorizontal: 13,
-      paddingTop: 8,
-      paddingBottom: 6,
+      paddingTop: 6,
+      paddingBottom: 4,
       borderWidth: 1,
     },
 
     historyAreaLandscape: {
       borderRadius: 13,
       paddingHorizontal: 8,
-      paddingTop: 5,
-      paddingBottom: 4,
+      paddingTop: 4,
+      paddingBottom: 3,
     },
 
     historyHeader: {
@@ -2082,21 +2010,21 @@ const styles =
     recentHistoryScroll: {
       flex: 1,
       minHeight: 0,
-      marginTop: 3,
+      marginTop: 1,
     },
 
     recentHistoryContent: {
-      gap: 3,
-      paddingBottom: 3,
+      gap: 2,
+      paddingBottom: 2,
     },
 
     emptyHistoryText: {
-      marginTop: 5,
+      marginTop: 3,
       fontSize: 11,
     },
 
     historyRow: {
-      minHeight: 22,
+      minHeight: 20,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent:
@@ -2114,7 +2042,7 @@ const styles =
 
     historyCountText: {
       flexShrink: 1,
-      fontSize: 13,
+      fontSize: 15,
       lineHeight: 18,
     },
 
@@ -2190,7 +2118,7 @@ const styles =
     plusButton: {
       flex: 1,
       minHeight: 56,
-      maxHeight: 145,
+      maxHeight: 170,
       width: '82%',
       maxWidth: 340,
       borderRadius: 26,
@@ -2241,6 +2169,9 @@ const styles =
       fontSize: 20,
     },
 
+    /*
+     * 横画面
+     */
     landscapeContent: {
       flex: 1,
       minHeight: 0,
@@ -2251,8 +2182,8 @@ const styles =
     },
 
     landscapeLeft: {
-      minWidth: 135,
-      maxWidth: 300,
+      minWidth: 120,
+      maxWidth: 260,
       gap: 5,
     },
 
@@ -2261,19 +2192,19 @@ const styles =
     },
 
     /*
-     * 横画面のメモを少し小さめに固定
+     * 横メモも約1行分
      */
     landscapeMemoBox: {
-      height: '34%',
-      minHeight: 0,
+      height: 50,
+      minHeight: 50,
     },
 
     /*
-     * 残りを最近の履歴に使う
+     * 横履歴は約2行分
      */
     landscapeHistoryBox: {
-      flex: 1,
-      minHeight: 0,
+      height: 78,
+      minHeight: 78,
     },
 
     landscapeMain: {
@@ -2454,13 +2385,13 @@ const styles =
     },
 
     fullHistoryRow: {
-      minHeight: 64,
+      minHeight: 52,
       flexDirection: 'row',
       justifyContent:
         'space-between',
       alignItems: 'center',
       borderBottomWidth: 1,
-      paddingVertical: 10,
+      paddingVertical: 8,
     },
 
     fullHistoryLeft: {
@@ -2477,11 +2408,6 @@ const styles =
     fullHistoryCount: {
       fontSize: 17,
       fontWeight: '600',
-    },
-
-    fullHistoryType: {
-      marginTop: 3,
-      fontSize: 12,
     },
 
     newLabelFull: {
