@@ -33,15 +33,12 @@ import {
   updateProject,
 } from '../../storage/appStorage';
 
-import {
-  themes,
-} from '../../theme/themes';
+import { themes } from '../../theme/themes';
 
 export default function CounterScreen() {
-  const { id } =
-    useLocalSearchParams<{
-      id: string;
-    }>();
+  const { id } = useLocalSearchParams<{
+    id: string;
+  }>();
 
   const { width, height } =
     useWindowDimensions();
@@ -50,31 +47,18 @@ export default function CounterScreen() {
     width > height;
 
   const recentHistoryScrollRef =
-    useRef<ScrollView | null>(
-      null
-    );
+    useRef<ScrollView | null>(null);
 
-  const [
-    project,
-    setProject,
-  ] =
-    useState<Project | null>(
-      null
-    );
+  const [project, setProject] =
+    useState<Project | null>(null);
 
-  const [
-    language,
-    setLanguage,
-  ] =
+  const [language, setLanguage] =
     useState<Language>('ja');
 
-  const [
-    themeName,
-    setThemeName,
-  ] =
-    useState<
-      keyof typeof themes
-    >('pink');
+  const [themeName, setThemeName] =
+    useState<keyof typeof themes>(
+      'pink'
+    );
 
   const [
     historyModalVisible,
@@ -87,6 +71,11 @@ export default function CounterScreen() {
   ] = useState(false);
 
   const [
+    memoEditing,
+    setMemoEditing,
+  ] = useState(false);
+
+  const [
     memoDraft,
     setMemoDraft,
   ] = useState('');
@@ -95,33 +84,32 @@ export default function CounterScreen() {
     useCallback(() => {
       let active = true;
 
-      const load =
-        async () => {
-          if (!id) return;
+      const load = async () => {
+        if (!id) return;
 
-          const data =
-            await loadAppData();
+        const data =
+          await loadAppData();
 
-          const savedProject =
-            data.projects.find(
-              (project) =>
-                project.id === id
-            ) ?? null;
+        const savedProject =
+          data.projects.find(
+            (project) =>
+              project.id === id
+          ) ?? null;
 
-          if (active) {
-            setProject(
-              savedProject
-            );
+        if (active) {
+          setProject(
+            savedProject
+          );
 
-            setLanguage(
-              data.language
-            );
+          setLanguage(
+            data.language
+          );
 
-            setThemeName(
-              data.theme
-            );
-          }
-        };
+          setThemeName(
+            data.theme
+          );
+        }
+      };
 
       load();
 
@@ -189,8 +177,7 @@ export default function CounterScreen() {
     ];
 
     while (
-      nextHistory.length >
-        0 &&
+      nextHistory.length > 0 &&
       nextHistory[0].type ===
         'mark'
     ) {
@@ -259,8 +246,7 @@ export default function CounterScreen() {
         ...project,
 
         stitch:
-          project.stitch +
-          1,
+          project.stitch + 1,
 
         undoStack: [
           ...project.undoStack,
@@ -289,13 +275,10 @@ export default function CounterScreen() {
         history = [
           {
             id: `${Date.now()}-${Math.random()}`,
-
             row:
               project.row,
-
             stitch:
               project.stitch,
-
             type:
               'row' as const,
           },
@@ -338,13 +321,10 @@ export default function CounterScreen() {
         history = [
           {
             id: `${Date.now()}-${Math.random()}`,
-
             row:
               project.row,
-
             stitch:
               project.stitch,
-
             type:
               'stitch' as const,
           },
@@ -379,13 +359,10 @@ export default function CounterScreen() {
       const item:
         HistoryItem = {
         id: `${Date.now()}-${Math.random()}`,
-
         row:
           project.row,
-
         stitch:
           project.stitch,
-
         type: 'mark',
       };
 
@@ -439,15 +416,35 @@ export default function CounterScreen() {
       });
     };
 
-  const openMemoEditor =
+  const openMemoViewer =
     () => {
       setMemoDraft(
         project.memo ?? ''
       );
 
+      setMemoEditing(false);
+
       setMemoModalVisible(
         true
       );
+    };
+
+  const startMemoEditing =
+    () => {
+      setMemoDraft(
+        project.memo ?? ''
+      );
+
+      setMemoEditing(true);
+    };
+
+  const cancelMemoEditing =
+    () => {
+      setMemoDraft(
+        project.memo ?? ''
+      );
+
+      setMemoEditing(false);
     };
 
   const saveMemo =
@@ -456,6 +453,17 @@ export default function CounterScreen() {
         ...project,
         memo: memoDraft,
       });
+
+      setMemoEditing(false);
+    };
+
+  const closeMemoModal =
+    () => {
+      setMemoDraft(
+        project.memo ?? ''
+      );
+
+      setMemoEditing(false);
 
       setMemoModalVisible(
         false
@@ -496,12 +504,8 @@ export default function CounterScreen() {
 
   const renderHistoryItem = (
     item: HistoryItem,
-    index: number
+    isNewest: boolean
   ) => {
-    const isNewest =
-      index ===
-      displayHistory.length - 1;
-
     return (
       <View
         key={item.id}
@@ -517,7 +521,6 @@ export default function CounterScreen() {
           <Text
             style={[
               styles.historyCountText,
-
               {
                 color:
                   currentTheme.text,
@@ -535,7 +538,6 @@ export default function CounterScreen() {
             <View
               style={[
                 styles.pausedBadge,
-
                 {
                   backgroundColor:
                     currentTheme.soft,
@@ -546,7 +548,6 @@ export default function CounterScreen() {
                 style={{
                   color:
                     currentTheme.text,
-
                   fontSize: 11,
                 }}
               >
@@ -562,7 +563,6 @@ export default function CounterScreen() {
           <Text
             style={[
               styles.newLabel,
-
               {
                 color:
                   currentTheme.accent,
@@ -628,7 +628,6 @@ export default function CounterScreen() {
           <Text
             style={[
               styles.historyArrow,
-
               {
                 color:
                   currentTheme.subText,
@@ -644,7 +643,6 @@ export default function CounterScreen() {
           <Text
             style={[
               styles.emptyHistoryText,
-
               {
                 color:
                   currentTheme.subText,
@@ -675,12 +673,21 @@ export default function CounterScreen() {
               recentHistoryScrollRef
                 .current
                 ?.scrollToEnd({
-                  animated: true,
+                  animated: false,
                 });
             }}
           >
             {displayHistory.map(
-              renderHistoryItem
+              (
+                item,
+                index
+              ) =>
+                renderHistoryItem(
+                  item,
+                  index ===
+                    displayHistory.length -
+                      1
+                )
             )}
           </ScrollView>
         )}
@@ -722,41 +729,86 @@ export default function CounterScreen() {
           ]}
         >
           <View
-            style={
-              styles.counterValueRow
-            }
+            style={[
+              styles.counterTopRow,
+
+              landscape &&
+                styles.counterTopRowLandscape,
+            ]}
           >
-            <Text
+            <View
+              style={
+                styles.counterValueRow
+              }
+            >
+              <Text
+                style={[
+                  styles.counterNumber,
+
+                  landscape &&
+                    styles.counterNumberLandscape,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
+              >
+                {number}
+              </Text>
+
+              <Text
+                style={[
+                  styles.counterUnit,
+
+                  landscape &&
+                    styles.counterUnitLandscape,
+
+                  {
+                    color:
+                      currentTheme.text,
+                  },
+                ]}
+              >
+                {unit}
+              </Text>
+            </View>
+
+            <TouchableOpacity
               style={[
-                styles.counterNumber,
+                styles.nextButton,
 
                 landscape &&
-                  styles.counterNumberLandscape,
+                  styles.nextButtonLandscape,
 
                 {
-                  color:
-                    currentTheme.text,
+                  backgroundColor:
+                    currentTheme.soft,
                 },
               ]}
+              activeOpacity={0.7}
+              onPress={
+                isRow
+                  ? startNewRow
+                  : startNewStitch
+              }
             >
-              {number}
-            </Text>
+              <Text
+                style={[
+                  styles.nextButtonText,
 
-            <Text
-              style={[
-                styles.counterUnit,
+                  landscape &&
+                    styles.nextButtonTextLandscape,
 
-                landscape &&
-                  styles.counterUnitLandscape,
-
-                {
-                  color:
-                    currentTheme.text,
-                },
-              ]}
-            >
-              {unit}
-            </Text>
+                  {
+                    color:
+                      currentTheme.subText,
+                  },
+                ]}
+              >
+                │→
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -794,48 +846,6 @@ export default function CounterScreen() {
               ＋
             </Text>
           </TouchableOpacity>
-
-          <View
-            style={
-              styles.nextButtonRow
-            }
-          >
-            <TouchableOpacity
-              style={[
-                styles.nextButton,
-
-                landscape &&
-                  styles.nextButtonLandscape,
-
-                {
-                  backgroundColor:
-                    currentTheme.soft,
-                },
-              ]}
-              activeOpacity={0.7}
-              onPress={
-                isRow
-                  ? startNewRow
-                  : startNewStitch
-              }
-            >
-              <Text
-                style={[
-                  styles.nextButtonText,
-
-                  landscape &&
-                    styles.nextButtonTextLandscape,
-
-                  {
-                    color:
-                      currentTheme.subText,
-                  },
-                ]}
-              >
-                │→
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       );
     };
@@ -865,18 +875,21 @@ export default function CounterScreen() {
             },
           ]}
           activeOpacity={0.8}
-          onPress={
-            addMark
-          }
+          onPress={addMark}
         >
           <Text
-            style={{
-              color:
-                currentTheme.text,
+            style={[
+              styles.markButtonText,
 
-              fontWeight:
-                '600',
-            }}
+              landscape &&
+                styles.markButtonTextLandscape,
+
+              {
+                color:
+                  currentTheme.text,
+              },
+            ]}
+            numberOfLines={1}
           >
             {isJapanese
               ? '途中を記録'
@@ -896,19 +909,15 @@ export default function CounterScreen() {
                 currentTheme.soft,
             },
 
-            project
-              .undoStack
-              .length ===
-              0 &&
+            project.undoStack
+              .length === 0 &&
               styles.undoDisabled,
           ]}
           activeOpacity={0.8}
           onPress={undo}
           disabled={
-            project
-              .undoStack
-              .length ===
-            0
+            project.undoStack
+              .length === 0
           }
         >
           <Text
@@ -934,11 +943,7 @@ export default function CounterScreen() {
     (
       landscape = false
     ) => (
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={
-          openMemoEditor
-        }
+      <View
         style={[
           styles.memoArea,
 
@@ -954,7 +959,11 @@ export default function CounterScreen() {
           },
         ]}
       >
-        <View
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={
+            openMemoViewer
+          }
           style={
             styles.memoHeader
           }
@@ -979,51 +988,58 @@ export default function CounterScreen() {
 
           <Text
             style={[
-              styles.memoEditLabel,
-
+              styles.memoOpenLabel,
               {
                 color:
-                  currentTheme.accent,
+                  currentTheme.subText,
               },
             ]}
           >
-            {isJapanese
-              ? '編集'
-              : 'Edit'}
+            ›
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <Text
+        <ScrollView
           style={[
-            styles.memoText,
+            styles.memoPreviewScroll,
 
             landscape &&
-              styles.memoTextLandscape,
-
-            {
-              color:
-                project.memo
-                  ? currentTheme.text
-                  : currentTheme.subText,
-            },
+              styles.memoPreviewScrollLandscape,
           ]}
-          numberOfLines={
-            landscape ? 4 : undefined
+          contentContainerStyle={
+            styles.memoPreviewContent
           }
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
         >
-          {project.memo ||
-            (isJapanese
-              ? 'タップしてメモを書く'
-              : 'Tap to add a note')}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={[
+              styles.memoText,
+
+              landscape &&
+                styles.memoTextLandscape,
+
+              {
+                color:
+                  project.memo
+                    ? currentTheme.text
+                    : currentTheme.subText,
+              },
+            ]}
+          >
+            {project.memo ||
+              (isJapanese
+                ? 'メモはまだありません'
+                : 'No note yet')}
+          </Text>
+        </ScrollView>
+      </View>
     );
 
   return (
     <SafeAreaView
       style={[
         styles.safeArea,
-
         {
           backgroundColor:
             currentTheme.background,
@@ -1033,7 +1049,6 @@ export default function CounterScreen() {
       <View
         style={[
           styles.container,
-
           {
             backgroundColor:
               currentTheme.background,
@@ -1059,7 +1074,6 @@ export default function CounterScreen() {
             <Text
               style={[
                 styles.backText,
-
                 {
                   color:
                     currentTheme.text,
@@ -1094,6 +1108,7 @@ export default function CounterScreen() {
           />
         </View>
 
+        {/* 縦画面 */}
         {!isLandscape && (
           <ScrollView
             style={
@@ -1103,6 +1118,10 @@ export default function CounterScreen() {
               false
             }
           >
+            {renderActions()}
+
+            {renderMemo()}
+
             {renderHistory()}
 
             {renderCounter(
@@ -1112,13 +1131,10 @@ export default function CounterScreen() {
             {renderCounter(
               'stitch'
             )}
-
-            {renderActions()}
-
-            {renderMemo()}
           </ScrollView>
         )}
 
+        {/* 横画面 */}
         {isLandscape && (
           <View
             style={
@@ -1134,18 +1150,13 @@ export default function CounterScreen() {
                 true
               )}
 
-              <ScrollView
-                style={
-                  styles.landscapeMemoScroll
-                }
-                showsVerticalScrollIndicator={
-                  false
-                }
-              >
-                {renderMemo(
-                  true
-                )}
-              </ScrollView>
+              {renderMemo(
+                true
+              )}
+
+              {renderActions(
+                true
+              )}
             </View>
 
             <View
@@ -1172,7 +1183,6 @@ export default function CounterScreen() {
                 <View
                   style={[
                     styles.landscapeDivider,
-
                     {
                       backgroundColor:
                         currentTheme.border,
@@ -1191,15 +1201,11 @@ export default function CounterScreen() {
                   )}
                 </View>
               </View>
-
-              {renderActions(
-                true
-              )}
             </View>
           </View>
         )}
 
-        {/* メモ編集モーダル */}
+        {/* メモ全文表示・編集 */}
         <Modal
           visible={
             memoModalVisible
@@ -1213,10 +1219,8 @@ export default function CounterScreen() {
             'landscape-left',
             'landscape-right',
           ]}
-          onRequestClose={() =>
-            setMemoModalVisible(
-              false
-            )
+          onRequestClose={
+            closeMemoModal
           }
         >
           <View
@@ -1237,121 +1241,208 @@ export default function CounterScreen() {
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.memoModalTitle,
-
-                  {
-                    color:
-                      currentTheme.text,
-                  },
-                ]}
-              >
-                {isJapanese
-                  ? 'メモを編集'
-                  : 'Edit Note'}
-              </Text>
-
-              <TextInput
-                value={
-                  memoDraft
-                }
-                onChangeText={
-                  setMemoDraft
-                }
-                multiline
-                autoFocus
-                textAlignVertical="top"
-                placeholder={
-                  isJapanese
-                    ? 'メモを入力'
-                    : 'Enter a note'
-                }
-                placeholderTextColor={
-                  currentTheme.subText
-                }
-                style={[
-                  styles.memoInput,
-
-                  {
-                    color:
-                      currentTheme.text,
-
-                    borderColor:
-                      currentTheme.border,
-
-                    backgroundColor:
-                      currentTheme.background,
-                  },
-                ]}
-              />
-
               <View
                 style={
-                  styles.memoModalButtons
+                  styles.modalHeader
                 }
               >
-                <TouchableOpacity
+                <Text
                   style={[
-                    styles.memoCancelButton,
-
+                    styles.memoModalTitle,
                     {
-                      backgroundColor:
-                        currentTheme.soft,
-                    },
-                  ]}
-                  onPress={() =>
-                    setMemoModalVisible(
-                      false
-                    )
-                  }
-                >
-                  <Text
-                    style={{
                       color:
                         currentTheme.text,
-                    }}
-                  >
-                    {isJapanese
-                      ? 'キャンセル'
-                      : 'Cancel'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.memoSaveButton,
-
-                    {
-                      backgroundColor:
-                        currentTheme.accent,
                     },
                   ]}
+                >
+                  {isJapanese
+                    ? 'メモ'
+                    : 'Note'}
+                </Text>
+
+                <TouchableOpacity
+                  style={
+                    styles.modalCloseButton
+                  }
                   onPress={
-                    saveMemo
+                    closeMemoModal
                   }
                 >
                   <Text
                     style={[
-                      styles.memoSaveText,
-
+                      styles.modalCloseText,
                       {
                         color:
                           currentTheme.text,
                       },
                     ]}
                   >
-                    {isJapanese
-                      ? '保存'
-                      : 'Save'}
+                    ×
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {!memoEditing ? (
+                <>
+                  <View
+                    style={[
+                      styles.memoViewer,
+                      {
+                        borderColor:
+                          currentTheme.border,
+
+                        backgroundColor:
+                          currentTheme.background,
+                      },
+                    ]}
+                  >
+                    <ScrollView
+                      showsVerticalScrollIndicator
+                    >
+                      <Text
+                        style={[
+                          styles.memoViewerText,
+                          {
+                            color:
+                              project.memo
+                                ? currentTheme.text
+                                : currentTheme.subText,
+                          },
+                        ]}
+                      >
+                        {project.memo ||
+                          (isJapanese
+                            ? 'メモはまだありません'
+                            : 'No note yet')}
+                      </Text>
+                    </ScrollView>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.memoEditButton,
+                      {
+                        backgroundColor:
+                          currentTheme.accent,
+                      },
+                    ]}
+                    onPress={
+                      startMemoEditing
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.memoEditButtonText,
+                        {
+                          color:
+                            currentTheme.text,
+                        },
+                      ]}
+                    >
+                      {isJapanese
+                        ? '編集'
+                        : 'Edit'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    value={
+                      memoDraft
+                    }
+                    onChangeText={
+                      setMemoDraft
+                    }
+                    multiline
+                    autoFocus
+                    textAlignVertical="top"
+                    placeholder={
+                      isJapanese
+                        ? 'メモを入力'
+                        : 'Enter a note'
+                    }
+                    placeholderTextColor={
+                      currentTheme.subText
+                    }
+                    style={[
+                      styles.memoInput,
+                      {
+                        color:
+                          currentTheme.text,
+
+                        borderColor:
+                          currentTheme.border,
+
+                        backgroundColor:
+                          currentTheme.background,
+                      },
+                    ]}
+                  />
+
+                  <View
+                    style={
+                      styles.memoModalButtons
+                    }
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.memoCancelButton,
+                        {
+                          backgroundColor:
+                            currentTheme.soft,
+                        },
+                      ]}
+                      onPress={
+                        cancelMemoEditing
+                      }
+                    >
+                      <Text
+                        style={{
+                          color:
+                            currentTheme.text,
+                        }}
+                      >
+                        {isJapanese
+                          ? 'キャンセル'
+                          : 'Cancel'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.memoSaveButton,
+                        {
+                          backgroundColor:
+                            currentTheme.accent,
+                        },
+                      ]}
+                      onPress={
+                        saveMemo
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.memoSaveText,
+                          {
+                            color:
+                              currentTheme.text,
+                          },
+                        ]}
+                      >
+                        {isJapanese
+                          ? '保存'
+                          : 'Save'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </Modal>
 
-        {/* 全履歴モーダル */}
+        {/* 全履歴 */}
         <Modal
           visible={
             historyModalVisible
@@ -1397,7 +1488,6 @@ export default function CounterScreen() {
                 <Text
                   style={[
                     styles.modalTitle,
-
                     {
                       color:
                         currentTheme.text,
@@ -1410,6 +1500,9 @@ export default function CounterScreen() {
                 </Text>
 
                 <TouchableOpacity
+                  style={
+                    styles.modalCloseButton
+                  }
                   onPress={() =>
                     setHistoryModalVisible(
                       false
@@ -1417,12 +1510,13 @@ export default function CounterScreen() {
                   }
                 >
                   <Text
-                    style={{
-                      color:
-                        currentTheme.text,
-
-                      fontSize: 30,
-                    }}
+                    style={[
+                      styles.modalCloseText,
+                      {
+                        color:
+                          currentTheme.text,
+                      },
+                    ]}
                   >
                     ×
                   </Text>
@@ -1430,7 +1524,11 @@ export default function CounterScreen() {
               </View>
 
               <ScrollView
+                style={
+                  styles.fullHistoryScroll
+                }
                 showsVerticalScrollIndicator
+                nestedScrollEnabled
               >
                 {displayHistory.map(
                   (
@@ -1449,7 +1547,6 @@ export default function CounterScreen() {
                         }
                         style={[
                           styles.fullHistoryRow,
-
                           {
                             borderBottomColor:
                               currentTheme.border,
@@ -1464,7 +1561,6 @@ export default function CounterScreen() {
                           <Text
                             style={[
                               styles.fullHistoryCount,
-
                               {
                                 color:
                                   currentTheme.text,
@@ -1481,7 +1577,6 @@ export default function CounterScreen() {
                             <Text
                               style={[
                                 styles.fullHistoryType,
-
                                 {
                                   color:
                                     currentTheme.subText,
@@ -1505,7 +1600,6 @@ export default function CounterScreen() {
                             <View
                               style={[
                                 styles.pausedBadge,
-
                                 {
                                   backgroundColor:
                                     currentTheme.soft,
@@ -1516,7 +1610,6 @@ export default function CounterScreen() {
                                 style={{
                                   color:
                                     currentTheme.text,
-
                                   fontSize:
                                     12,
                                 }}
@@ -1532,7 +1625,6 @@ export default function CounterScreen() {
                             <Text
                               style={[
                                 styles.newLabelFull,
-
                                 {
                                   color:
                                     currentTheme.accent,
@@ -1622,8 +1714,10 @@ const styles =
       paddingHorizontal: 24,
     },
 
+    /* 最近の履歴 */
+
     historyArea: {
-      height: 180,
+      height: 130,
       borderRadius: 22,
       padding: 18,
       marginBottom: 28,
@@ -1631,7 +1725,7 @@ const styles =
     },
 
     historyAreaLandscape: {
-      height: 128,
+      height: 108,
       padding: 9,
       marginBottom: 7,
       borderRadius: 15,
@@ -1668,7 +1762,7 @@ const styles =
     },
 
     recentHistoryContent: {
-      gap: 8,
+      gap: 6,
       paddingBottom: 2,
     },
 
@@ -1711,6 +1805,8 @@ const styles =
       marginLeft: 4,
     },
 
+    /* Counter */
+
     counterSection: {
       alignItems: 'center',
       marginBottom: 40,
@@ -1723,11 +1819,28 @@ const styles =
         'center',
     },
 
+    counterTopRow: {
+      width: '82%',
+      maxWidth: 310,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      gap: 14,
+      marginBottom: 14,
+    },
+
+    counterTopRowLandscape: {
+      width: '84%',
+      maxWidth: 330,
+      gap: 16,
+      marginBottom: 12,
+    },
+
     counterValueRow: {
       flexDirection: 'row',
       alignItems:
         'flex-end',
-      marginBottom: 14,
     },
 
     counterNumber: {
@@ -1779,38 +1892,34 @@ const styles =
       lineHeight: 104,
     },
 
-    nextButtonRow: {
-      width: '82%',
-      maxWidth: 310,
-      alignItems:
-        'flex-end',
-      marginTop: 14,
-    },
+    /* │→ */
 
     nextButton: {
-      minWidth: 74,
-      height: 46,
-      borderRadius: 18,
-      paddingHorizontal: 18,
+      minWidth: 66,
+      height: 44,
+      borderRadius: 16,
+      paddingHorizontal: 14,
       alignItems: 'center',
       justifyContent:
         'center',
     },
 
     nextButtonLandscape: {
-      minWidth: 82,
-      height: 46,
-      borderRadius: 18,
+      minWidth: 70,
+      height: 44,
+      borderRadius: 16,
     },
 
     nextButtonText: {
-      fontSize: 22,
+      fontSize: 21,
       fontWeight: '600',
     },
 
     nextButtonTextLandscape: {
-      fontSize: 23,
+      fontSize: 22,
     },
+
+    /* 途中 / Undo */
 
     actionRow: {
       flexDirection: 'row',
@@ -1818,13 +1927,15 @@ const styles =
         'center',
       alignItems: 'center',
       gap: 18,
-      marginTop: 4,
-      marginBottom: 30,
+      marginTop: 2,
+      marginBottom: 20,
     },
 
     actionRowLandscape: {
-      marginTop: 2,
-      marginBottom: 5,
+      width: '100%',
+      gap: 6,
+      marginTop: 6,
+      marginBottom: 4,
     },
 
     markButton: {
@@ -1838,8 +1949,20 @@ const styles =
     },
 
     markButtonLandscape: {
-      minWidth: 155,
-      height: 48,
+      flex: 1,
+      minWidth: 0,
+      height: 44,
+      paddingHorizontal: 6,
+      borderRadius: 16,
+    },
+
+    markButtonText: {
+      fontWeight: '600',
+      fontSize: 14,
+    },
+
+    markButtonTextLandscape: {
+      fontSize: 11,
     },
 
     undoButton: {
@@ -1852,9 +1975,9 @@ const styles =
     },
 
     undoButtonLandscape: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
     },
 
     undoDisabled: {
@@ -1866,20 +1989,28 @@ const styles =
     },
 
     undoTextLandscape: {
-      fontSize: 25,
+      fontSize: 24,
     },
 
+    /* メモ */
+
     memoArea: {
+      height: 112,
       borderRadius: 22,
-      padding: 20,
-      marginBottom: 30,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 12,
+      marginBottom: 20,
       borderWidth: 1,
     },
 
     memoAreaLandscape: {
-      padding: 9,
+      height: 92,
+      paddingHorizontal: 9,
+      paddingTop: 7,
+      paddingBottom: 7,
       borderRadius: 15,
-      marginBottom: 5,
+      marginBottom: 7,
     },
 
     memoHeader: {
@@ -1889,19 +2020,36 @@ const styles =
       alignItems: 'center',
     },
 
-    memoEditLabel: {
-      fontSize: 13,
-      fontWeight: '600',
+    memoOpenLabel: {
+      fontSize: 27,
+      lineHeight: 27,
+    },
+
+    memoPreviewScroll: {
+      flex: 1,
+      marginTop: 6,
+    },
+
+    memoPreviewScrollLandscape: {
+      marginTop: 3,
+    },
+
+    memoPreviewContent: {
+      paddingBottom: 6,
     },
 
     memoText: {
-      marginTop: 12,
+      fontSize: 14,
+      lineHeight: 22,
+      paddingRight: 4,
     },
 
     memoTextLandscape: {
-      marginTop: 5,
       fontSize: 12,
+      lineHeight: 18,
     },
+
+    /* Landscape */
 
     landscapeContent: {
       flex: 1,
@@ -1912,11 +2060,7 @@ const styles =
     },
 
     landscapeLeft: {
-      width: '19%',
-    },
-
-    landscapeMemoScroll: {
-      flex: 1,
+      width: '23%',
     },
 
     landscapeMain: {
@@ -1938,6 +2082,8 @@ const styles =
       marginVertical: 10,
     },
 
+    /* Modal */
+
     modalOverlay: {
       flex: 1,
       justifyContent:
@@ -1947,9 +2093,32 @@ const styles =
         'rgba(0,0,0,0.35)',
     },
 
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+
+    modalCloseButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    modalCloseText: {
+      fontSize: 30,
+    },
+
+    /* Memo modal */
+
     memoModal: {
       width: '100%',
       maxWidth: 520,
+      maxHeight: '75%',
       alignSelf: 'center',
       borderRadius: 26,
       padding: 22,
@@ -1957,17 +2126,46 @@ const styles =
 
     memoModalLandscape: {
       width: '65%',
+      maxHeight: '88%',
     },
 
     memoModalTitle: {
       fontSize: 22,
       fontWeight: '700',
-      marginBottom: 16,
+    },
+
+    memoViewer: {
+      minHeight: 180,
+      maxHeight: 320,
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 16,
+    },
+
+    memoViewerText: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+
+    memoEditButton: {
+      alignSelf: 'flex-end',
+      minWidth: 110,
+      height: 48,
+      marginTop: 18,
+      paddingHorizontal: 20,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    memoEditButtonText: {
+      fontWeight: '700',
     },
 
     memoInput: {
-      minHeight: 150,
-      maxHeight: 280,
+      minHeight: 180,
+      maxHeight: 320,
       borderWidth: 1,
       borderRadius: 18,
       paddingHorizontal: 16,
@@ -2007,24 +2205,22 @@ const styles =
       fontWeight: '700',
     },
 
+    /* Full History */
+
     historyModal: {
-      maxHeight: '75%',
+      height: '75%',
       borderRadius: 28,
       padding: 22,
     },
 
     historyModalLandscape: {
-      maxHeight: '88%',
+      height: '88%',
       alignSelf: 'center',
       width: '65%',
     },
 
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
+    fullHistoryScroll: {
+      flex: 1,
     },
 
     modalTitle: {
