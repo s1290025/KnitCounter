@@ -45,7 +45,7 @@ export type AppData = {
 const defaultData: AppData = {
   projects: [],
   language: 'ja',
-  theme: 'pink',
+  theme: 'beige',
 };
 
 export async function loadAppData(): Promise<AppData> {

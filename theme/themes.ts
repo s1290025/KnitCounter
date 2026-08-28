@@ -1,4 +1,5 @@
 export type ThemeName =
+  | 'beige'
   | 'pink'
   | 'red'
   | 'blue'
@@ -18,6 +19,18 @@ export type ThemeColors = {
 };
 
 export const themes: Record<ThemeName, ThemeColors> = {
+  beige: {
+    background: '#F8F3EC',
+    surface: '#FFFFFF',
+    accent: '#C9A77F',
+    soft: '#EEE3D5',
+    text: '#2B241E',
+    subText: '#827467',
+    border: '#DED0C0',
+    dangerBackground: '#FCE9E7',
+    dangerText: '#B64035',
+  },
+
   pink: {
     background: '#FFF9F8',
     surface: '#FFFFFF',
@@ -80,6 +93,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
 };
 
 export const themeNames: ThemeName[] = [
+  'beige',
   'pink',
   'red',
   'blue',
