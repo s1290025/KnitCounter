@@ -94,7 +94,7 @@ export default function CounterScreen() {
     useState<Language>('ja');
 
   const [themeName, setThemeName] =
-    useState<keyof typeof themes>('pink');
+    useState<keyof typeof themes>('beige');
 
   const [
     historyModalVisible,
@@ -1503,45 +1503,45 @@ export default function CounterScreen() {
                     </TouchableOpacity>
                   </>
                 ) : (
-                  <ScrollView
+                  <View
                     style={
-                      styles.memoEditScroll
-                    }
-                    contentContainerStyle={
-                      styles.memoEditContent
-                    }
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={
-                      false
+                      styles.memoEditContainer
                     }
                   >
-                    <TextInput
-                      value={memoDraft}
-                      onChangeText={
-                        setMemoDraft
+                    <View
+                      style={
+                        styles.memoInputWrapper
                       }
-                      multiline
-                      textAlignVertical="top"
-                      placeholder={
-                        isJapanese
-                          ? 'メモを入力'
-                          : 'Enter a note'
-                      }
-                      placeholderTextColor={
-                        currentTheme.subText
-                      }
-                      style={[
-                        styles.memoInput,
-                        {
-                          color:
-                            currentTheme.text,
-                          borderColor:
-                            currentTheme.border,
-                          backgroundColor:
-                            currentTheme.background,
-                        },
-                      ]}
-                    />
+                    >
+                      <TextInput
+                        value={memoDraft}
+                        onChangeText={
+                          setMemoDraft
+                        }
+                        multiline
+                        scrollEnabled
+                        textAlignVertical="top"
+                        placeholder={
+                          isJapanese
+                            ? 'メモを入力'
+                            : 'Enter a note'
+                        }
+                        placeholderTextColor={
+                          currentTheme.subText
+                        }
+                        style={[
+                          styles.memoInput,
+                          {
+                            color:
+                              currentTheme.text,
+                            borderColor:
+                              currentTheme.border,
+                            backgroundColor:
+                              currentTheme.background,
+                          },
+                        ]}
+                      />
+                    </View>
 
                     <View
                       style={
@@ -1599,7 +1599,7 @@ export default function CounterScreen() {
                         </Text>
                       </TouchableOpacity>
                     </View>
-                  </ScrollView>
+                  </View>
                 )}
               </View>
             </View>
@@ -1811,7 +1811,7 @@ const styles =
     loadingSafeArea: {
       flex: 1,
       backgroundColor:
-        '#FFF9F3',
+        '#F8F3EC',
     },
 
     loadingContainer: {
@@ -2134,11 +2134,6 @@ const styles =
       paddingBottom: 2,
     },
 
-    /*
-     * タブレット横のみ
-     * 上1/3：数字
-     * 下2/3：＋ボタン
-     */
     counterSectionLandscapeTablet: {
       flex: 1,
       minHeight: 0,
@@ -2170,10 +2165,6 @@ const styles =
       height: 88,
     },
 
-    /*
-     * タブレット横では固定58pxを解除。
-     * flex:1 で上1/3を使用。
-     */
     counterTopRowLandscapeTablet: {
       flex: 1,
       flexShrink: 1,
@@ -2310,10 +2301,6 @@ const styles =
       marginBottom: 0,
     },
 
-    /*
-     * タブレット横の段ボタン。
-     * flex:2 なので数字側 flex:1 の2倍。
-     */
     plusButtonLandscapeTablet: {
       flex: 2,
       minHeight: 0,
@@ -2347,9 +2334,6 @@ const styles =
       borderRadius: 999,
     },
 
-    /*
-     * タブレット横の目ボタンも2/3。
-     */
     stitchPlusButtonLandscapeTablet: {
       flex: 2,
       minHeight: 0,
@@ -2460,7 +2444,8 @@ const styles =
     memoModal: {
       width: '100%',
       maxWidth: 560,
-      maxHeight: '80%',
+      height: '72%',
+      maxHeight: 620,
       borderRadius: 26,
       padding: 20,
     },
@@ -2468,7 +2453,9 @@ const styles =
     memoModalLandscape: {
       width: '72%',
       maxWidth: 680,
-      maxHeight: '92%',
+      height: '96%',
+      maxHeight: 520,
+      padding: 14,
     },
 
     historyModal: {
@@ -2538,17 +2525,19 @@ const styles =
       fontWeight: '700',
     },
 
-    memoEditScroll: {
-      flexGrow: 0,
+    memoEditContainer: {
+      flex: 1,
+      minHeight: 0,
     },
 
-    memoEditContent: {
-      paddingBottom: 4,
+    memoInputWrapper: {
+      flex: 1,
+      minHeight: 0,
     },
 
     memoInput: {
-      minHeight: 160,
-      maxHeight: 320,
+      flex: 1,
+      minHeight: 0,
       borderWidth: 1.5,
       borderRadius: 18,
       padding: 14,
@@ -2559,7 +2548,8 @@ const styles =
     memoModalButtons: {
       flexDirection: 'row',
       gap: 10,
-      marginTop: 14,
+      marginTop: 10,
+      flexShrink: 0,
     },
 
     memoCancelButton: {
