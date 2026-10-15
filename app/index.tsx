@@ -946,7 +946,7 @@ export default function ProjectListScreen() {
                     >
                       {isJapanese
                         ? `${project.row}段 / ${project.stitch}目`
-                        : `${project.row} Rows / ${project.stitch} Stitches`}
+                        : `${project.row} ${project.row === 1 ? 'Row' : 'Rows'} / ${project.stitch} ${project.stitch === 1 ? 'Stitch' : 'Stitches'}`}
                     </Text>
 
                     {project.memo !==
