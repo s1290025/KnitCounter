@@ -497,7 +497,7 @@ export default function CounterScreen() {
         >
           {isJapanese
             ? `${item.row}段 ${item.stitch}目`
-            : `${item.row} Row ${item.stitch} Stitches`}
+            : `${item.row} ${item.row === 1 ? 'Row' : 'Rows'} ${item.stitch} ${item.stitch === 1 ? 'Stitch' : 'Stitches'}`}
         </Text>
 
         {item.type ===
@@ -1744,7 +1744,7 @@ export default function CounterScreen() {
                           >
                             {isJapanese
                               ? `${item.row}段 ${item.stitch}目`
-                              : `${item.row} Row ${item.stitch} Stitches`}
+                              : `${item.row} ${item.row === 1 ? 'Row' : 'Rows'} ${item.stitch} ${item.stitch === 1 ? 'Stitch' : 'Stitches'}`}
                           </Text>
                         </View>
 
